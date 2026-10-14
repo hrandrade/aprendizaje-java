@@ -926,7 +926,7 @@ Alt+F9        Run to Cursor: corre hasta donde está el cursor
 Alt+F8        Evaluate Expression: calcula cualquier expresión con el estado actual
 Ctrl+F8       Pone o quita un breakpoint en la línea
 Ctrl+Shift+F8 Ventana con todos los breakpoints (en Mac: Cmd en lugar de Ctrl, Option en lugar de Alt)</code></pre>
-<p>En portátiles Mac/Windows a veces las teclas F requieren la tecla Fn.</p>
+<p><b>Excepciones en macOS</b> (keymap por defecto): Debug es <code>Ctrl+D</code> y Resume es <code>Option+Cmd+R</code> (no F9). En portátiles las teclas F a veces requieren la tecla Fn. Si algún atajo no coincide, búscalo en <i>Settings → Keymap</i> o con Shift Shift.</p>
 <p>Ventana <b>Debug</b> (abajo): <b>Frames</b> (la pila de llamadas: qué método llamó a cuál; clic en uno para ver sus variables), <b>Variables</b> (valores actuales; despliega objetos) y <b>Watches</b> (expresiones que quieres vigilar, como <code>lista.size()</code>). También puedes pasar el ratón sobre una variable en el editor para ver su valor.</p>`],
 ["Breakpoints avanzados",`<p>Clic derecho sobre un breakpoint (o en la ventana de breakpoints) para configurarlo:</p>
 <ul><li><b>Condición</b>: se detiene solo si se cumple, por ejemplo <code>i == 500</code> o <code>usuario.getId() == 7</code>. Imprescindible dentro de bucles grandes.</li><li><b>Logging</b> (sin suspender): imprime un mensaje o expresión en la consola cada vez que pasa, sin detener el programa ni modificar el código.</li><li><b>Hit count</b>: detenerse a partir de la vez número N.</li><li><b>Exception breakpoint</b> (<i>Java Exception Breakpoints</i> → <code>+</code>): se detiene exactamente donde se lanza, por ejemplo cualquier <code>NullPointerException</code>, aunque se atrape luego.</li><li><b>Field watchpoint</b>: se detiene cuando alguien lee o modifica un atributo.</li></ul>
@@ -1128,9 +1128,9 @@ WHERE p.id IS NULL;</code></pre>
   -v pgdata:/var/lib/postgresql/data \\
   -d postgres:16
 
-docker ps                   comprobar que corre
-docker stop pg-aprendizaje  detener
-docker start pg-aprendizaje volver a iniciar</code></pre>
+docker ps                    # comprobar que corre
+docker stop pg-aprendizaje   # detener
+docker start pg-aprendizaje  # volver a iniciar</code></pre>
 <p>El volumen <code>-v pgdata</code> conserva tus datos si borras el contenedor; sin él se pierden. (En una sola línea en Windows PowerShell, quita las barras invertidas finales.)</p>`],
 ["Opción B: instalación directa",`<ul><li><b>Windows / macOS</b>: instalador oficial en postgresql.org/download. Durante el asistente define la contraseña del usuario <code>postgres</code> (anótala), deja el puerto <b>5432</b> y marca pgAdmin/herramientas de línea de comandos.</li><li><b>macOS con Homebrew</b>: <code>brew install postgresql@16</code> y <code>brew services start postgresql@16</code>.</li><li><b>Ubuntu/Debian</b>: <code>sudo apt install postgresql</code>; luego <code>sudo -u postgres psql</code> para entrar y <code>ALTER USER postgres PASSWORD 'secreto';</code>.</li></ul>
 <p>Si prefieres MySQL: instalador oficial o <code>docker run --name mysql-aprendizaje -e MYSQL_ROOT_PASSWORD=secreto -e MYSQL_DATABASE=tienda -p 3306:3306 -d mysql:8</code>. Diferencias menores: <code>AUTO_INCREMENT</code> en lugar de IDENTITY, y acentos graves para nombres.</p>`],
@@ -1275,5 +1275,1066 @@ String sql = "SELECT * FROM clientes WHERE email = '" + email + "'";
 ["Práctica",`<ol><li>Agrega el driver y escribe un <code>main</code> que se conecte y muestre <code>SELECT version()</code>.</li><li>Implementa un <b>CRUD completo de clientes</b> en <code>ClienteDao</code> (crear, listar, buscar por email, actualizar, borrar) con un menú de consola.</li><li>Demuestra SQL injection con una versión concatenada, y luego arréglala con PreparedStatement.</li><li>Implementa una transferencia entre cuentas con transacción; fuerza un error en la segunda operación y comprueba que se hizo rollback.</li><li>Mide el tiempo de 200 consultas abriendo una conexión nueva cada vez frente a reutilizando una sola.</li><li>Sustituye los println por logs y mueve la contraseña a una variable de entorno (en IntelliJ: Run → Edit Configurations → Environment variables).</li></ol>`],
 ["Errores comunes",`<ul><li><b>No suitable driver found</b>: falta la dependencia del driver o la URL está mal escrita.</li><li><b>Connection refused / password authentication failed</b>: servidor apagado, puerto o credenciales incorrectas.</li><li><b>relation "clientes" does not exist</b>: tabla inexistente, otra base o esquema distinto.</li><li><b>Fuga de conexiones</b>: no cerrar Connection/ResultSet.</li><li><b>Índices que empiezan en 0</b>: en JDBC (<code>setString(1, ...)</code>, <code>getString(1)</code>) empiezan en 1.</li><li><b>Concatenar valores en el SQL</b> en lugar de usar parámetros.</li></ul>`],
 ["Cómo sé que lo domino",`<ul><li>Conecto a PostgreSQL desde Java y leo resultados con ResultSet.</li><li>Explico qué es SQL injection y cómo lo evita PreparedStatement.</li><li>Escribo un CRUD con DAO y una transacción con commit y rollback.</li><li>Sé por qué se usa un pool de conexiones.</li></ul>`]
+]},
+"6-0":{e:"7. Web y HTTP",t:"Cómo funciona HTTP: métodos, códigos de estado, headers",s:[
+["La idea general",`<p><b>HTTP</b> (HyperText Transfer Protocol) es el idioma con el que se comunican navegadores, aplicaciones móviles y servidores. Funciona con el modelo <b>petición-respuesta</b>: un <b>cliente</b> envía una petición (<i>request</i>) y un <b>servidor</b> devuelve una respuesta (<i>response</i>). Dos propiedades clave:</p>
+<ul><li><b>Sin estado (stateless)</b>: cada petición es independiente; el servidor no "recuerda" la anterior. Por eso existen cookies, sesiones y tokens para identificar al usuario.</li><li><b>Es texto</b> sobre una conexión TCP. <b>HTTPS</b> es HTTP cifrado con TLS (puerto 443; HTTP usa el 80). Hoy todo debe ir por HTTPS.</li></ul>
+<p>Tu aplicación Spring Boot será un servidor HTTP: recibirá peticiones y devolverá respuestas, normalmente en JSON. Los servidores web escuchan en un <b>puerto</b>; Spring Boot usa por defecto el <code>8080</code>.</p>`],
+["Anatomía de una URL",`<pre><code>https://api.tienda.com:443/v1/clientes/5?activo=true&amp;orden=nombre#datos
+└─┬─┘   └─────┬──────┘└┬┘ └─────┬──────┘└──────────┬─────────┘└──┬─┘
+esquema     host     puerto   ruta (path)      query string     fragmento</code></pre>
+<ul><li><b>Host</b>: se traduce a una IP mediante DNS.</li><li><b>Path</b>: identifica el recurso (<code>/clientes/5</code>). <b>Path param</b> es la parte variable (el 5).</li><li><b>Query string</b>: pares <code>clave=valor</code> separados por <code>&amp;</code>, para filtros, orden y paginación.</li><li><b>Fragmento</b> (<code>#</code>): lo usa solo el navegador; no se envía al servidor.</li></ul>
+<p>No pongas datos sensibles (contraseñas, tokens) en la URL: quedan en logs e historial.</p>`],
+["Anatomía de petición y respuesta",`<p>Una petición tiene: <b>línea inicial</b> (método + ruta + versión), <b>headers</b>, una línea en blanco y un <b>cuerpo</b> opcional.</p>
+<pre><code>POST /v1/clientes HTTP/1.1
+Host: api.tienda.com
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer eyJhbGciOi...
+
+{"nombre": "Ana", "email": "ana@correo.com"}</code></pre>
+<p>La respuesta tiene: <b>línea de estado</b> (versión + código + texto), headers y cuerpo.</p>
+<pre><code>HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /v1/clientes/8
+
+{"id": 8, "nombre": "Ana", "email": "ana@correo.com"}</code></pre>`],
+["Métodos HTTP",`<pre><code>GET      leer un recurso                      seguro, idempotente
+POST     crear un recurso / ejecutar acción   NO idempotente
+PUT      reemplazar un recurso completo       idempotente
+PATCH    modificar parcialmente               (normalmente no garantizado)
+DELETE   eliminar                             idempotente
+HEAD     como GET pero solo headers
+OPTIONS  qué métodos admite (lo usan los navegadores en CORS)</code></pre>
+<ul><li><b>Seguro</b>: no modifica datos. GET nunca debe cambiar nada.</li><li><b>Idempotente</b>: repetir la misma petición varias veces deja el mismo resultado que una sola vez. Borrar el cliente 5 dos veces termina igual; crear con POST dos veces crea dos recursos.</li><li><b>PUT vs PATCH</b>: PUT envía el recurso completo; PATCH solo los campos que cambian.</li></ul>`],
+["Códigos de estado",`<p>El primer dígito indica la familia. <b>Regla de oro: 4xx es culpa del cliente; 5xx, del servidor.</b></p>
+<pre><code>2xx ÉXITO
+ 200 OK                   respuesta normal con cuerpo
+ 201 Created              recurso creado (suele incluir header Location)
+ 202 Accepted             recibido, se procesará después
+ 204 No Content           éxito sin cuerpo (típico en DELETE)
+
+3xx REDIRECCIÓN
+ 301 Moved Permanently    302 Found      304 Not Modified (caché vigente)
+
+4xx ERROR DEL CLIENTE
+ 400 Bad Request          petición mal formada / datos inválidos
+ 401 Unauthorized         no autenticado (falta o es inválido el token)
+ 403 Forbidden            autenticado pero sin permiso
+ 404 Not Found            el recurso no existe
+ 405 Method Not Allowed   método no permitido en esa ruta
+ 409 Conflict             choque con el estado actual (email duplicado)
+ 415 Unsupported Media Type   Content-Type no admitido
+ 422 Unprocessable Content    validación semántica fallida
+ 429 Too Many Requests    límite de peticiones excedido
+
+5xx ERROR DEL SERVIDOR
+ 500 Internal Server Error    fallo inesperado (un bug)
+ 502 Bad Gateway   503 Service Unavailable   504 Gateway Timeout</code></pre>`],
+["Headers (cabeceras) importantes",`<ul><li><b>Content-Type</b>: formato del cuerpo que envías (<code>application/json</code>, <code>text/html</code>, <code>multipart/form-data</code>, <code>application/x-www-form-urlencoded</code>).</li><li><b>Accept</b>: formato que aceptas recibir.</li><li><b>Authorization</b>: credenciales (<code>Bearer token</code>, <code>Basic ...</code>).</li><li><b>Cookie</b> / <b>Set-Cookie</b>: sesiones.</li><li><b>Location</b>: URL del recurso creado o destino de una redirección.</li><li><b>Cache-Control</b>, <b>ETag</b>: control de caché.</li><li><b>User-Agent</b>, <b>Host</b>, <b>Content-Length</b>.</li><li><b>Access-Control-Allow-Origin</b>: CORS; qué sitios web pueden llamar a tu API desde el navegador (lo verás en Seguridad).</li></ul>`],
+["Práctica",`<p>Usa <code>curl</code> (en Windows PowerShell escribe <code>curl.exe</code>; si el POST con JSON da error de comillas, ejecútalo en Git Bash o usa Postman, que veremos en la tercera lección). La opción <code>-i</code> muestra los headers de la respuesta:</p>
+<pre><code>curl -i https://httpbin.org/get
+curl -i https://httpbin.org/status/404
+curl -i -X POST https://httpbin.org/post -H "Content-Type: application/json" -d "{\\"a\\": 1}"
+curl -i -H "Accept: application/json" https://jsonplaceholder.typicode.com/users/1</code></pre>
+<ol><li>Identifica en cada respuesta la línea de estado, tres headers y el cuerpo.</li><li>Abre cualquier página, pulsa <b>F12 → pestaña Network</b>, recarga y estudia 3 peticiones: método, código, headers y tiempo.</li><li>Pide un recurso inexistente y lee el 404; prueba <code>httpbin.org/status/500</code>.</li><li>Haz una lista de qué código devolverías en: login fallido, usuario sin permisos, cliente creado, borrado exitoso, email duplicado, falla de la base de datos.</li></ol>`],
+["Errores comunes",`<ul><li><b>Confundir 401 y 403</b>: 401 = no sé quién eres; 403 = sé quién eres y no puedes.</li><li><b>Usar GET para modificar datos</b> (los buscadores y cachés pueden repetirlo).</li><li><b>Responder 200 con un mensaje de error</b> en el cuerpo.</li><li><b>Enviar JSON sin el header Content-Type</b> correcto.</li><li><b>Datos sensibles en la URL</b>.</li><li><b>Confundir PUT con PATCH</b> y perder campos al reemplazar.</li></ul>`],
+["Cómo sé que lo domino",`<ul><li>Dibujo de memoria una petición y una respuesta HTTP.</li><li>Elijo el método correcto y explico "seguro" e "idempotente".</li><li>Doy el código de estado adecuado a 10 situaciones.</li><li>Leo headers y peticiones en las herramientas de desarrollo del navegador y con curl.</li></ul>`]
+]},
+"6-1":{e:"7. Web y HTTP",t:"Qué es una API REST y qué es JSON",s:[
+["Qué es una API REST",`<p>Una <b>API</b> es una interfaz para que un programa use las funciones de otro. Una <b>API REST</b> expone <b>recursos</b> (clientes, pedidos, productos) a través de HTTP. <b>REST</b> es un estilo de arquitectura, no un protocolo; sus ideas principales:</p>
+<ul><li><b>Cliente-servidor</b> separados: el front-end (web, móvil) y el back-end evolucionan por separado.</li><li><b>Sin estado</b>: cada petición lleva toda la información necesaria (por ejemplo el token).</li><li><b>Recursos con URI propia</b> y manipulados mediante representaciones (normalmente JSON).</li><li><b>Interfaz uniforme</b>: se usan los métodos HTTP con su significado estándar.</li><li><b>Cacheable</b> y en capas (balanceadores, gateways).</li></ul>`],
+["Diseño de endpoints",`<p>Reglas prácticas: la URI nombra <b>recursos (sustantivos, plural)</b>; el <b>método HTTP</b> indica la acción. Minúsculas y guiones; jerarquía para relaciones.</p>
+<pre><code>Operación            Método   URI                       Éxito          Errores típicos
+Listar clientes      GET      /clientes                 200            -
+Ver uno              GET      /clientes/5               200            404
+Crear                POST     /clientes                 201 + Location 400, 409
+Reemplazar           PUT      /clientes/5               200 / 204      400, 404
+Modificar parcial    PATCH    /clientes/5               200            400, 404
+Borrar               DELETE   /clientes/5               204            404
+Pedidos de un cliente GET     /clientes/5/pedidos       200            404
+
+Filtrar, ordenar y paginar con query params:
+GET /clientes?ciudad=Lima&amp;page=0&amp;size=20&amp;sort=nombre,asc
+
+Versionar la API:   /api/v1/clientes</code></pre>
+<p><b>Mal diseño</b> (verbos en la URL): <code>/obtenerClientes</code>, <code>/crearCliente</code>, <code>/borrar?id=5</code>. Para acciones que no encajan en CRUD se acepta un verbo como subrecurso: <code>POST /pedidos/7/cancelar</code>.</p>`],
+["JSON: sintaxis",`<p><b>JSON</b> (JavaScript Object Notation) es el formato de intercambio estándar: texto ligero, legible y soportado por todos los lenguajes.</p>
+<pre><code>{
+  "id": 8,
+  "nombre": "Ana Ruiz",
+  "activo": true,
+  "saldo": 1250.50,
+  "telefono": null,
+  "roles": ["ADMIN", "USER"],
+  "direccion": { "ciudad": "Lima", "cp": "15001" },
+  "creado": "2026-10-14T10:30:00Z"
+}</code></pre>
+<ul><li>Tipos: <b>string</b> (comillas dobles), <b>number</b>, <b>boolean</b> (<code>true</code>/<code>false</code>), <b>null</b>, <b>array</b> <code>[ ]</code> y <b>objeto</b> <code>{ }</code> (pares clave-valor; las claves van siempre entre comillas dobles).</li><li><b>No admite</b> comentarios, comillas simples ni coma final después del último elemento.</li><li>Las <b>fechas</b> no tienen tipo propio: se envían como texto en formato ISO 8601 (<code>2026-10-14</code> o <code>2026-10-14T10:30:00Z</code>).</li><li>Convención de nombres en Java/Spring: <b>camelCase</b> (<code>fechaNacimiento</code>).</li><li>Valida tu JSON en jsonlint.com o con el formateador de tu editor.</li></ul>`],
+["JSON y Java",`<p>Convertir objeto Java ↔ JSON se llama <b>serializar</b> / <b>deserializar</b>. La librería estándar es <b>Jackson</b> (incluida en Spring Boot, que lo hace automáticamente al recibir y devolver datos).</p>
+<pre><code>public record Cliente(long id, String nombre, String email) { }
+
+ObjectMapper mapper = new ObjectMapper();
+String json = mapper.writeValueAsString(new Cliente(8, "Ana", "ana@correo.com"));
+// {"id":8,"nombre":"Ana","email":"ana@correo.com"}
+
+Cliente c = mapper.readValue(json, Cliente.class);</code></pre>
+<p>Para consumir una API desde Java sin librerías externas existe <code>java.net.http.HttpClient</code>:</p>
+<pre><code>HttpClient client = HttpClient.newHttpClient();
+HttpRequest req = HttpRequest.newBuilder()
+    .uri(URI.create("https://jsonplaceholder.typicode.com/users/1"))
+    .header("Accept", "application/json")
+    .GET()
+    .build();
+HttpResponse&lt;String&gt; res = client.send(req, HttpResponse.BodyHandlers.ofString());
+System.out.println(res.statusCode());
+System.out.println(res.body());</code></pre>
+<p>(Necesita los imports de <code>java.net</code> y <code>java.net.http</code>, y manejar <code>IOException</code> e <code>InterruptedException</code>.)</p>`],
+["Respuestas de error y buenas prácticas",`<p>Devuelve errores con la <b>misma estructura</b> siempre, junto al código HTTP correcto:</p>
+<pre><code>{
+  "status": 404,
+  "error": "Not Found",
+  "message": "El cliente 99 no existe",
+  "path": "/clientes/99",
+  "timestamp": "2026-10-14T10:30:00Z"
+}</code></pre>
+<ul><li><b>No expongas tus entidades de base de datos</b> directamente: usa <b>DTOs</b> (por ejemplo records) para controlar qué sale y qué entra (nunca devuelvas contraseñas).</li><li><b>Pagina</b> las listas grandes.</li><li>Usa <b>HTTPS</b> y autenticación; nunca confíes en datos del cliente: <b>valida</b>.</li><li>Sé <b>consistente</b>: mismos nombres, mismo formato de fechas, mismo estilo de errores.</li><li>Documenta con <b>OpenAPI/Swagger</b> (lo harás en la Épica 9).</li></ul>`],
+["Práctica",`<ol><li>Diseña la API REST de una <b>biblioteca</b> (libros, autores, socios, préstamos): tabla con método, URI, código de éxito y errores posibles para al menos 12 endpoints.</li><li>Escribe el JSON de un libro con autores anidados, y el de la respuesta de error si el libro no existe.</li><li>Pega un JSON con errores (comillas simples, coma final) en jsonlint.com y corrígelo.</li><li>Con <code>curl -i https://jsonplaceholder.typicode.com/users/1</code> lee la respuesta y localiza el objeto anidado <code>address</code>.</li><li>Haz el mismo GET con <code>HttpClient</code> en Java y muestra el código y el cuerpo.</li><li>Con Jackson (agrega <code>jackson-databind</code> en tu pom) convierte un record a JSON y vuelve a un objeto.</li></ol>`],
+["Errores comunes",`<ul><li><b>Verbos en la URL</b> en lugar de recursos y métodos.</li><li><b>Mezclar singular y plural</b> (<code>/cliente</code> y <code>/pedidos</code>).</li><li><b>Devolver 200 siempre</b> con el error dentro del cuerpo.</li><li><b>JSON inválido</b>: comillas simples, coma final, claves sin comillas.</li><li><b>Formatos de fecha inventados</b> ("14-10-26") en lugar de ISO 8601.</li><li><b>Anidar demasiado</b> las rutas (<code>/a/1/b/2/c/3/d</code>).</li></ul>`],
+["Cómo sé que lo domino",`<ul><li>Explico qué es REST y qué significa "sin estado".</li><li>Diseño endpoints CRUD correctos con códigos de estado adecuados.</li><li>Escribo y leo JSON sin errores de sintaxis.</li><li>Sé qué hace Jackson y por qué se usan DTOs.</li></ul>`]
+]},
+"6-2":{e:"7. Web y HTTP",t:"Usar Postman o Insomnia",s:[
+["Para qué sirven",`<p>Cuando construyes una API todavía no tienes pantallas que la usen. <b>Postman</b> e <b>Insomnia</b> son clientes gráficos para enviar peticiones HTTP, ver respuestas, guardarlas en colecciones y automatizar pruebas. Elige una (los conceptos son idénticos): Postman (postman.com, la más popular, requiere cuenta), Insomnia (insomnia.rest, ligera), o <b>Bruno</b> (open source, guarda las colecciones como archivos y funciona bien con Git). También sirve <code>curl</code> en terminal, pero una herramienta gráfica es más cómoda para explorar.</p>`],
+["Tu primera petición",`<ol><li>Instala y abre la herramienta. Crea una <b>Collection</b> llamada "Ruta Java".</li><li><b>New Request</b>. Método <b>GET</b>, URL <code>https://jsonplaceholder.typicode.com/posts/1</code>. Pulsa <b>Send</b>.</li><li>Observa el panel de respuesta: <b>Status</b> (200 OK), <b>Time</b>, <b>Size</b>, pestaña <b>Body</b> (Pretty muestra el JSON formateado), <b>Headers</b> y <b>Cookies</b>.</li><li>Guarda la petición en la colección (<b>Save</b>).</li></ol>
+<p>Zonas de la petición: <b>Params</b> (query string: <code>?userId=1</code> se arma sola), <b>Authorization</b>, <b>Headers</b>, <b>Body</b>, <b>Scripts/Tests</b>.</p>`],
+["Enviar datos: POST, PUT y DELETE",`<ol><li>Cambia el método a <b>POST</b> y la URL a <code>https://jsonplaceholder.typicode.com/posts</code>.</li><li>Pestaña <b>Body</b> → <b>raw</b> → tipo <b>JSON</b> (esto añade el header <code>Content-Type: application/json</code> automáticamente).</li><li>Escribe:</li></ol>
+<pre><code>{
+  "title": "Mi primer post",
+  "body": "Probando la API",
+  "userId": 1
+}</code></pre>
+<p>Pulsa Send: obtendrás <b>201 Created</b> con el objeto y un <code>id</code> nuevo (esta API de práctica simula la creación, no guarda). Repite con <b>PUT</b> a <code>/posts/1</code> y <b>DELETE</b> a <code>/posts/1</code>, y fíjate en los códigos que devuelve cada uno.</p>`],
+["Variables y entornos",`<p>No repitas la URL base en cada petición. Crea un <b>Environment</b> (por ejemplo "local") con variables y úsalas entre llaves dobles:</p>
+<pre><code>Variable   Valor
+baseUrl    http://localhost:8080
+token      (vacío por ahora)
+
+URL de la petición:   {{baseUrl}}/clientes
+Header Authorization: Bearer {{token}}</code></pre>
+<p>Cambiar de "local" a "producción" es seleccionar otro entorno. <b>No guardes tokens ni contraseñas reales en colecciones que compartas o subas a Git.</b></p>`],
+["Tests y encadenamiento",`<p>En la pestaña <b>Tests</b> (Postman) escribes JavaScript que se ejecuta tras la respuesta, para verificar automáticamente:</p>
+<pre><code>pm.test("Status es 201", function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test("Devuelve un id numérico", function () {
+    const json = pm.response.json();
+    pm.expect(json.id).to.be.a("number");
+    pm.environment.set("clienteId", json.id);   // guarda el id para la siguiente petición
+});</code></pre>
+<p>Luego la petición siguiente puede usar <code>{{baseUrl}}/clientes/{{clienteId}}</code>. Así armas flujos: crear → consultar → actualizar → borrar. El <b>Collection Runner</b> ejecuta todas las peticiones en orden y muestra qué pruebas pasaron; <b>Newman</b> hace lo mismo desde la terminal (útil en CI). Exporta la colección a JSON y guárdala en tu repositorio.</p>`],
+["Práctica",`<p>Con <code>https://jsonplaceholder.typicode.com</code> (API pública de práctica):</p>
+<ol><li>GET <code>/posts</code> (lista) y GET <code>/posts/1</code>.</li><li>GET <code>/posts?userId=1</code> usando la pestaña Params.</li><li>GET <code>/posts/9999</code> y observa el 404.</li><li>POST a <code>/posts</code> con un body JSON propio.</li><li>PUT y DELETE sobre <code>/posts/1</code>.</li><li>Crea un entorno con <code>baseUrl</code> y reescribe las peticiones con <code>{{baseUrl}}</code>.</li><li>Agrega tests: status esperado y que el JSON contenga el campo <code>title</code>.</li><li>Exporta la colección y súbela a tu repositorio <code>java-aprendizaje</code>.</li></ol>
+<p>Más adelante usarás la misma herramienta para probar <b>tu propia API Spring Boot</b> en <code>http://localhost:8080</code>.</p>`],
+["Errores comunes",`<ul><li><b>Could not send request / ECONNREFUSED</b>: tu servidor no está corriendo o el puerto es otro.</li><li><b>Falta http:// en la URL</b>.</li><li><b>400 por JSON inválido</b>: revisa comillas y comas del body.</li><li><b>415 Unsupported Media Type</b>: el body no es raw JSON o falta el Content-Type.</li><li><b>Error CORS</b>: ocurre solo en navegadores, no en Postman; si funciona aquí y falla en el front, es configuración CORS del servidor.</li><li><b>Problemas de certificado SSL</b> en entornos locales: desactiva la verificación solo en desarrollo.</li><li><b>Variable sin resolver</b>: no seleccionaste el entorno activo.</li></ul>`],
+["Cómo sé que lo domino",`<ul><li>Envío GET, POST, PUT y DELETE y leo status, headers y body.</li><li>Mando JSON en el cuerpo con el Content-Type correcto.</li><li>Uso entornos, variables y un token Bearer.</li><li>Escribo un test sencillo y ejecuto una colección completa.</li></ul>`]
+]},
+"7-0":{e:"8. Spring Boot básico",t:"Inversión de control e inyección de dependencias",s:[
+["El problema: clases acopladas",`<p>Observa este servicio que crea él mismo lo que necesita:</p>
+<pre><code>public class PedidoServicio {
+    private final EmailNotificador notificador = new EmailNotificador();   // acoplado
+
+    public void crear() {
+        // ...
+        notificador.enviar("Pedido creado");
+    }
+}</code></pre>
+<p>Problemas: <b>PedidoServicio</b> queda atado a una implementación concreta (¿y si mañana quieres SMS?), no puedes probarlo sin enviar emails reales, y cada clase decide cómo construir sus piezas. Esto escala mal.</p>`],
+["Inyección de dependencias (DI)",`<p>Una <b>dependencia</b> es un objeto que otra clase necesita. <b>Inyectarla</b> significa que se la entregas desde fuera (normalmente por el constructor) en lugar de crearla dentro, y de preferencia programando contra una <b>interfaz</b>:</p>
+<pre><code>public interface Notificador { void enviar(String mensaje); }
+
+public class EmailNotificador implements Notificador {
+    public void enviar(String mensaje) { System.out.println("Email: " + mensaje); }
+}
+
+public class PedidoServicio {
+    private final Notificador notificador;                       // depende de la interfaz
+    public PedidoServicio(Notificador notificador) {             // se la entregan
+        this.notificador = notificador;
+    }
+    public void crear() { notificador.enviar("Pedido creado"); }
+}
+
+// Armado manual (sin Spring):
+PedidoServicio s = new PedidoServicio(new EmailNotificador());
+
+// En una prueba, sin enviar nada real (Notificador tiene un solo método → lambda):
+PedidoServicio test = new PedidoServicio(mensaje -&gt; System.out.println("simulado: " + mensaje));</code></pre>
+<p>Beneficios: <b>bajo acoplamiento</b>, <b>pruebas fáciles</b> (inyectas dobles/mocks) y <b>cambiar de implementación</b> sin tocar el consumidor.</p>`],
+["Inversión de control (IoC) y el contenedor de Spring",`<p><b>IoC</b> significa que el control de crear y conectar los objetos deja de estar en tu código y pasa a un <b>framework</b>. En Spring ese framework es el <b>contenedor</b> (<code>ApplicationContext</code>). Al arrancar la aplicación, el contenedor:</p>
+<ol><li><b>Descubre</b> las clases que marcaste (<code>@Component</code>, <code>@Service</code>…) escaneando los paquetes.</li><li><b>Crea</b> sus instancias, llamadas <b>beans</b>.</li><li><b>Resuelve</b> qué necesita cada una (mira los parámetros del constructor) y se las <b>inyecta</b>.</li><li>Gestiona su <b>ciclo de vida</b> hasta que la aplicación se cierra.</li></ol>
+<pre><code>@Component
+public class EmailNotificador implements Notificador { ... }
+
+@Service
+public class PedidoServicio {
+    private final Notificador notificador;
+
+    public PedidoServicio(Notificador notificador) {   // Spring inyecta EmailNotificador
+        this.notificador = notificador;
+    }
+}</code></pre>
+<p>Nunca haces <code>new PedidoServicio(...)</code> tú mismo: pides el bean al contenedor (o, más común, lo recibes inyectado en otra clase).</p>`],
+["Tipos de inyección y beans",`<ul><li><b>Por constructor (la recomendada)</b>: las dependencias son <code>final</code>, el objeto nace completo y es fácil de probar. Si la clase tiene un solo constructor, <code>@Autowired</code> es opcional.</li><li><b>Por setter</b>: para dependencias opcionales.</li><li><b>Por campo</b> (<code>@Autowired</code> sobre el atributo): funciona, pero oculta dependencias y dificulta las pruebas. Evítala.</li></ul>
+<p><b>Dos implementaciones de la misma interfaz</b> provocan <code>NoUniqueBeanDefinitionException</code>. Soluciones:</p>
+<pre><code>@Primary                       // la que se elige por defecto
+@Component
+public class EmailNotificador implements Notificador { ... }
+
+@Component("sms")
+public class SmsNotificador implements Notificador { ... }
+
+public PedidoServicio(@Qualifier("sms") Notificador notificador) { ... }   // elegir una concreta</code></pre>
+<p><b>Beans de librerías de terceros</b> (que no puedes anotar) se declaran con <code>@Bean</code> en una clase <code>@Configuration</code>:</p>
+<pre><code>@Configuration
+public class AppConfig {
+    @Bean
+    public ObjectMapper objectMapper() { return new ObjectMapper(); }
+}</code></pre>
+<p><b>Alcance (scope)</b>: por defecto cada bean es <b>singleton</b>: una sola instancia compartida por toda la aplicación (por eso los beans no deben guardar estado mutable por usuario). Otros: <code>prototype</code> (una nueva cada vez), <code>request</code>, <code>session</code>. Ciclo de vida: <code>@PostConstruct</code> (tras crearse e inyectarse) y <code>@PreDestroy</code> (antes de cerrar).</p>`],
+["Práctica",`<ol><li>Primero <b>sin Spring</b>: crea la interfaz <code>Notificador</code>, dos implementaciones (Email, Sms) y <code>PedidoServicio</code> con inyección por constructor. Arma todo en un <code>main</code> y cambia de implementación sin tocar el servicio.</li><li>Escribe una prueba JUnit de <code>PedidoServicio</code> usando una implementación falsa que guarde los mensajes en una lista y verifica que se envió "Pedido creado".</li><li>Con tu proyecto Spring (lección siguiente), anota las clases con <code>@Component</code>/<code>@Service</code> y verifica el funcionamiento con un <code>CommandLineRunner</code> en la clase principal:</li></ol>
+<pre><code>@Bean
+CommandLineRunner demo(PedidoServicio servicio) {
+    return args -&gt; servicio.crear();     // se ejecuta al arrancar
+}</code></pre>
+<ol start="4"><li>Provoca <code>NoUniqueBeanDefinitionException</code> con dos implementaciones y arréglalo con <code>@Primary</code> y luego con <code>@Qualifier</code>.</li><li>Haz que dos beans se necesiten mutuamente (dependencia circular) y lee el error de arranque.</li></ol>`],
+["Errores comunes",`<ul><li><b>NoSuchBeanDefinitionException</b>: falta la anotación (<code>@Service</code>…) o la clase está <b>fuera del paquete</b> de la clase principal y no se escanea.</li><li><b>NoUniqueBeanDefinitionException</b>: varias implementaciones; usa @Primary o @Qualifier.</li><li><b>Hacer <code>new MiServicio()</code> manualmente</b> y esperar que tenga sus dependencias inyectadas: no es un bean, sus campos quedan en null (NullPointerException).</li><li><b>Dependencia circular</b> (A necesita B y B necesita A): rediseña, normalmente falta una tercera clase.</li><li><b>Inyección por campo</b> que impide instanciar la clase en pruebas sin Spring.</li><li><b>Estado mutable en un singleton</b>: datos de un usuario se mezclan con los de otro.</li></ul>`],
+["Cómo sé que lo domino",`<ul><li>Explico con mis palabras IoC, DI y bean.</li><li>Convierto una clase que hace <code>new</code> de sus dependencias en una con inyección por constructor.</li><li>Resuelvo ambigüedades con @Primary y @Qualifier.</li><li>Sé por qué la inyección por constructor facilita las pruebas.</li></ul>`]
+]},
+"7-1":{e:"8. Spring Boot básico",t:"Crear un proyecto con Spring Initializr",s:[
+["Qué es Spring Boot y qué es Initializr",`<p><b>Spring Framework</b> aporta el contenedor de IoC y todo el ecosistema (web, datos, seguridad). <b>Spring Boot</b> lo hace fácil de usar con tres ideas: <b>starters</b> (una dependencia que trae todo lo necesario para una función), <b>autoconfiguración</b> (configura por ti según lo que hay en el classpath) y <b>servidor embebido</b> (Tomcat dentro del jar: no instalas nada, ejecutas con <code>java -jar</code>).</p>
+<p><b>Spring Initializr</b> (<b>start.spring.io</b>) es el sitio oficial que genera el esqueleto de un proyecto con el <code>pom.xml</code> correcto.</p>`],
+["Paso a paso en start.spring.io",`<ol><li><b>Project</b>: Maven. <b>Language</b>: Java.</li><li><b>Spring Boot</b>: elige la versión <b>estable más reciente</b> (sin sufijos SNAPSHOT, M1 ni RC). Las series actuales son 3.5.x y 4.x; todas exigen Java 17 como mínimo, y usaremos 21.</li><li><b>Group</b>: <code>com.miempresa</code>. <b>Artifact</b>: <code>tienda</code>. Name y Package se rellenan solos (<code>com.miempresa.tienda</code>).</li><li><b>Packaging</b>: Jar. <b>Java</b>: 21.</li><li><b>Add Dependencies</b> (botón o Ctrl+B): <b>Spring Web</b>, <b>Spring Boot DevTools</b>, <b>Validation</b> y <b>Spring Boot Actuator</b>. (Más adelante: JPA, PostgreSQL Driver, Security.)</li><li><b>Generate</b>: descarga un .zip. Descomprímelo en tu carpeta de proyectos.</li></ol>
+<p>En IntelliJ: <b>File → Open</b> y selecciona el <code>pom.xml</code> (Open as Project). Espera a que Maven descargue las dependencias (barra de progreso abajo). Nota: el nombre del starter web depende de la versión: en Spring Boot 3.x es <code>spring-boot-starter-web</code> y en 4.x es <code>spring-boot-starter-webmvc</code> (el antiguo sigue funcionando pero está obsoleto). Initializr siempre genera el correcto: no lo cambies a mano.</p>`],
+["Qué trae el proyecto generado",`<pre><code>tienda/
+ ├─ pom.xml                      dependencias y plugin de Spring Boot
+ ├─ mvnw, mvnw.cmd, .mvn/        Maven Wrapper (no necesitas instalar Maven)
+ ├─ .gitignore
+ └─ src/
+     ├─ main/java/com/miempresa/tienda/TiendaApplication.java   ← punto de entrada
+     ├─ main/resources/application.properties                    configuración
+     ├─ main/resources/static/        archivos estáticos (html, css, js)
+     ├─ main/resources/templates/     plantillas HTML (si usas Thymeleaf)
+     └─ test/java/com/miempresa/tienda/TiendaApplicationTests.java</code></pre>
+<pre><code>@SpringBootApplication
+public class TiendaApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(TiendaApplication.class, args);
+    }
+}</code></pre>
+<p><code>@SpringBootApplication</code> combina tres cosas: <code>@Configuration</code>, <code>@EnableAutoConfiguration</code> y <code>@ComponentScan</code>. <b>El escaneo parte del paquete de esta clase hacia abajo</b>: todas tus clases deben vivir en <code>com.miempresa.tienda</code> o en sus subpaquetes.</p>`],
+["Ejecutar y comprobar",`<p>Dos formas: botón verde junto al <code>main</code> en IntelliJ, o por terminal:</p>
+<pre><code>./mvnw spring-boot:run          (Windows: mvnw.cmd spring-boot:run)
+
+./mvnw clean package            genera target/tienda-0.0.1-SNAPSHOT.jar
+java -jar target/tienda-0.0.1-SNAPSHOT.jar</code></pre>
+<p>En la consola verás el banner de Spring y líneas como <i>Tomcat started on port 8080</i> y <i>Started TiendaApplication in 2.1 seconds</i>. Abre <code>http://localhost:8080</code>: aparece una página <b>Whitelabel Error Page (404)</b>. Es normal: la aplicación corre, solo que aún no tiene endpoints.</p>
+<p>Crea tu primer endpoint en <code>src/main/java/com/miempresa/tienda/HolaController.java</code>:</p>
+<pre><code>package com.miempresa.tienda;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class HolaController {
+    @GetMapping("/hola")
+    public String hola() {
+        return "¡Hola desde Spring Boot!";
+    }
+}</code></pre>
+<p>Reinicia y abre <code>http://localhost:8080/hola</code>, o prueba <code>curl -i http://localhost:8080/hola</code>. Con Actuator, <code>http://localhost:8080/actuator/health</code> responde <code>{"status":"UP"}</code>. DevTools reinicia la aplicación al recompilar (en IntelliJ: <b>Build → Build Project</b>, Ctrl+F9).</p>`],
+["Práctica",`<ol><li>Genera el proyecto, ábrelo y ejecútalo. Anota cuánto tarda en arrancar.</li><li>Crea <code>GET /hola</code> y <code>GET /hola/{nombre}</code> (con <code>@PathVariable</code>) que responda "Hola, Ana".</li><li>Visita <code>/actuator/health</code> y observa el JSON.</li><li>Cambia el puerto a 9090 en <code>application.properties</code> (<code>server.port=9090</code>) y comprueba que ya no responde en 8080.</li><li>Genera el jar con <code>./mvnw clean package</code>, ejecútalo con <code>java -jar</code> y confirma que funciona sin IntelliJ.</li><li>Abre el <code>pom.xml</code> e identifica: el <b>parent</b> (spring-boot-starter-parent), los starters y el spring-boot-maven-plugin.</li><li>Haz <code>git init</code>, revisa que el <code>.gitignore</code> excluye <code>target/</code> y haz tu primer commit en un repositorio nuevo.</li></ol>`],
+["Errores comunes",`<ul><li><b>Port 8080 was already in use</b>: otra aplicación (o una instancia anterior tuya) usa el puerto; ciérrala o cambia <code>server.port</code>.</li><li><b>404 en tu endpoint</b>: el controller está <b>fuera del paquete</b> base y no se escanea, o escribiste mal la ruta.</li><li><b>Unsupported class file major version</b> / <b>release version not supported</b>: tu JDK no coincide con el configurado en el pom o en IntelliJ (File → Project Structure).</li><li><b>Maven no descarga</b>: sin internet o proxy; revisa y pulsa Reload.</li><li><b>Elegir una versión SNAPSHOT/RC</b> y encontrar errores raros: usa la estable.</li><li><b>Abrir la carpeta equivocada</b>: IntelliJ debe abrir la que contiene <code>pom.xml</code>.</li></ul>`],
+["Cómo sé que lo domino",`<ul><li>Genero un proyecto en Initializr y lo ejecuto en IntelliJ y por terminal.</li><li>Explico qué hace <code>@SpringBootApplication</code> y por qué importa el paquete.</li><li>Entiendo qué es un starter y qué aporta la autoconfiguración.</li><li>Creo un endpoint GET y lo pruebo con navegador y curl.</li></ul>`]
+]},
+"7-2":{e:"8. Spring Boot básico",t:"Estructura: controller, service, repository",s:[
+["Arquitectura en capas",`<p>Para que el código sea mantenible, cada clase tiene <b>una responsabilidad</b> y las clases se agrupan en capas:</p>
+<pre><code>Cliente HTTP → CONTROLLER → SERVICE → REPOSITORY → Base de datos
+                  ↑            ↑           ↑
+          traduce HTTP   lógica de      acceso a datos
+          (rutas, JSON,  negocio y      (consultas, guardar,
+          códigos)       reglas         buscar)</code></pre>
+<ul><li><b>Controller</b>: recibe la petición, extrae parámetros y cuerpo, llama al servicio y devuelve la respuesta con el código HTTP adecuado. <b>No contiene lógica de negocio.</b></li><li><b>Service</b>: reglas de negocio, validaciones, coordinación de varios repositorios y transacciones. <b>No sabe nada de HTTP.</b></li><li><b>Repository</b>: lee y escribe datos. <b>No contiene reglas de negocio.</b></li><li><b>Model / Entity</b>: las clases que representan tus datos. <b>DTO</b>: objetos para entrada/salida de la API (los usarás en la Épica 9).</li></ul>
+<p>Reglas de dependencia: <b>solo hacia abajo</b> (controller → service → repository); el controller no llama directamente al repository; el service no usa <code>ResponseEntity</code> ni <code>HttpServletRequest</code>.</p>`],
+["Organización de paquetes",`<pre><code>com.miempresa.tienda
+ ├─ TiendaApplication.java
+ ├─ controller/ClienteController.java
+ ├─ service/ClienteService.java
+ ├─ repository/ClienteRepository.java
+ ├─ model/Cliente.java
+ └─ dto/                       (más adelante)</code></pre>
+<p>Esta es la organización <b>por capas</b>, la más habitual para empezar. Existe también <b>por funcionalidad</b> (<code>cliente/</code> con su controller, service y repository juntos), que escala mejor en proyectos grandes. Lo importante: ser consistente.</p>`],
+["Ejemplo completo en memoria",`<p>Aún no usamos base de datos: el repositorio guardará en un mapa (en la Épica 10 lo cambiarás por JPA sin tocar el resto, ese es el valor de las capas).</p>
+<pre><code>// model/Cliente.java
+public record Cliente(Long id, String nombre, String email) { }
+
+// repository/ClienteRepository.java
+@Repository
+public class ClienteRepository {
+    private final Map&lt;Long, Cliente&gt; datos = new ConcurrentHashMap&lt;&gt;();
+    private final AtomicLong secuencia = new AtomicLong();
+
+    public List&lt;Cliente&gt; buscarTodos() { return new ArrayList&lt;&gt;(datos.values()); }
+
+    public Optional&lt;Cliente&gt; buscarPorId(long id) { return Optional.ofNullable(datos.get(id)); }
+
+    public Cliente guardar(Cliente c) {
+        long id = secuencia.incrementAndGet();
+        Cliente nuevo = new Cliente(id, c.nombre(), c.email());
+        datos.put(id, nuevo);
+        return nuevo;
+    }
+}
+
+// service/ClienteService.java
+@Service
+public class ClienteService {
+    private final ClienteRepository repo;
+
+    public ClienteService(ClienteRepository repo) { this.repo = repo; }
+
+    public List&lt;Cliente&gt; listar() { return repo.buscarTodos(); }
+
+    public Cliente obtener(long id) {
+        return repo.buscarPorId(id)
+                .orElseThrow(() -&gt; new NoSuchElementException("Cliente " + id + " no existe"));
+    }
+
+    public Cliente crear(Cliente c) {
+        if (c.nombre() == null || c.nombre().isBlank()) {
+            throw new IllegalArgumentException("El nombre es obligatorio");
+        }
+        return repo.guardar(c);
+    }
+}
+
+// controller/ClienteController.java
+@RestController
+@RequestMapping("/clientes")
+public class ClienteController {
+    private final ClienteService servicio;
+
+    public ClienteController(ClienteService servicio) { this.servicio = servicio; }
+
+    @GetMapping
+    public List&lt;Cliente&gt; listar() { return servicio.listar(); }
+
+    @GetMapping("/{id}")
+    public Cliente obtener(@PathVariable long id) { return servicio.obtener(id); }
+
+    @PostMapping
+    public ResponseEntity&lt;Cliente&gt; crear(@RequestBody Cliente c) {
+        Cliente creado = servicio.crear(c);
+        return ResponseEntity.created(URI.create("/clientes/" + creado.id())).body(creado);
+    }
+}</code></pre>
+<p>Prueba (con la app corriendo):</p>
+<pre><code>curl -i -X POST http://localhost:8080/clientes -H "Content-Type: application/json" -d '{"nombre":"Ana","email":"ana@correo.com"}'
+curl -i http://localhost:8080/clientes
+curl -i http://localhost:8080/clientes/1
+curl -i http://localhost:8080/clientes/99</code></pre>
+<p>Observa que el cliente 99 devuelve <b>500</b>: las excepciones aún no están traducidas a códigos HTTP. Eso se arregla en la Épica 9 con <code>@RestControllerAdvice</code> (404 para "no existe", 400 para datos inválidos). También notarás que los datos se pierden al reiniciar: es memoria.</p>`],
+["Por qué separar en capas",`<ul><li><b>Cambiar una capa sin romper las otras</b>: pasar de memoria a PostgreSQL solo toca el repositorio.</li><li><b>Probar por separado</b>: el servicio se prueba con un repositorio falso, sin servidor ni base de datos.</li><li><b>Reutilizar lógica</b>: dos controllers (REST y otro) pueden usar el mismo servicio.</li><li><b>Legibilidad</b>: sabes dónde buscar cada cosa.</li></ul>
+<p>Cuidado con el exceso: no crees capas vacías que solo delegan sin valor. Una regla útil: si el service no hace nada más que llamar al repository, está bien en un CRUD simple, pero la lógica nueva siempre va ahí, no en el controller.</p>`],
+["Práctica",`<ol><li>Reproduce el ejemplo completo y pruébalo con Postman: crear, listar, obtener y un id inexistente.</li><li>Agrega <code>DELETE /clientes/{id}</code> y <code>PUT /clientes/{id}</code> recorriendo las tres capas (controller, service, repository). Usa <code>204 No Content</code> para borrar.</li><li>Agrega en el service la regla "no se permiten dos clientes con el mismo email" (lanza una excepción) y comprueba que el controller no cambió.</li><li>Escribe una prueba JUnit de <code>ClienteService</code> con un repositorio real en memoria (instancia directa con <code>new</code>, sin Spring).</li><li>Crea una segunda entidad (<code>Producto</code>) con sus tres capas, siguiendo el mismo patrón.</li><li>Revisa tu código: ¿hay algún <code>ResponseEntity</code> en un service o alguna regla de negocio en un controller? Corrígelo.</li></ol>`],
+["Errores comunes",`<ul><li><b>Lógica de negocio en el controller</b> (queda sin reutilizar y difícil de probar).</li><li><b>Controller que llama al repository</b> saltándose el service.</li><li><b>Clases fuera del paquete base</b>: Spring no las encuentra (404 o bean no encontrado).</li><li><b>Olvidar la anotación</b> (<code>@Repository</code>, <code>@Service</code>, <code>@RestController</code>).</li><li><b>415 Unsupported Media Type</b> o <b>400</b> al hacer POST: falta <code>Content-Type: application/json</code> o el JSON es inválido.</li><li><b>Devolver entidades internas</b> directamente a la API: se corrige con DTOs (Épica 9).</li></ul>`],
+["Cómo sé que lo domino",`<ul><li>Explico la responsabilidad de cada capa y la dirección de las dependencias.</li><li>Construyo un CRUD en memoria con controller, service y repository.</li><li>Sé dónde va cada tipo de código (HTTP, reglas, datos).</li><li>Entiendo por qué cambiar a una base de datos solo tocará el repositorio.</li></ul>`]
+]},
+"7-3":{e:"8. Spring Boot básico",t:"Anotaciones clave (@RestController, @Service, @Autowired…)",s:[
+["Cómo funcionan las anotaciones",`<p>Una <b>anotación</b> es metadato que añades al código (<code>@Algo</code>). No ejecuta nada por sí sola: Spring lee las anotaciones al arrancar (mediante reflexión) y actúa según lo que encuentre. Las clases anotadas dentro del paquete base se registran como <b>beans</b> (<i>component scan</i>), y la <b>autoconfiguración</b> activa configuración adicional según los starters presentes. Si quieres ver qué se configuró y por qué, agrega <code>debug=true</code> a tu configuración y lee el informe de condiciones al arrancar.</p>`],
+["Arranque y configuración",`<ul><li><b>@SpringBootApplication</b>: la clase principal (= @Configuration + @EnableAutoConfiguration + @ComponentScan).</li><li><b>@Configuration</b>: clase que declara beans.</li><li><b>@Bean</b>: método que devuelve un objeto que Spring registra como bean (útil para clases de terceros).</li><li><b>@Profile("dev")</b>: el bean/clase solo existe con ese perfil activo.</li><li><b>@Value("\${app.nombre}")</b>: inyecta un valor de la configuración.</li><li><b>@ConfigurationProperties(prefix = "app")</b>: enlaza un grupo de propiedades a una clase (lo verás en la última lección de esta épica).</li></ul>`],
+["Estereotipos: registrar clases como beans",`<ul><li><b>@Component</b>: bean genérico.</li><li><b>@Service</b>: capa de negocio.</li><li><b>@Repository</b>: capa de datos; además traduce excepciones de persistencia a las de Spring.</li><li><b>@Controller</b>: controlador que devuelve vistas (HTML).</li><li><b>@RestController</b>: controlador de API; es @Controller + <b>@ResponseBody</b>, así que el valor devuelto se escribe como JSON en el cuerpo de la respuesta.</li></ul>
+<p>Todas (menos @RestController/@Controller en su función web) son @Component con distinto significado: usarlas correctamente documenta tu arquitectura.</p>`],
+["Inyección",`<pre><code>@Service
+public class PedidoServicio {
+    private final ClienteService clientes;
+    private final Notificador notificador;
+
+    // Con un único constructor, @Autowired NO es necesario:
+    public PedidoServicio(ClienteService clientes,
+                          @Qualifier("sms") Notificador notificador) {
+        this.clientes = clientes;
+        this.notificador = notificador;
+    }
+}</code></pre>
+<ul><li><b>@Autowired</b>: pide una inyección (ponlo solo si hay varios constructores, y evítalo en campos).</li><li><b>@Qualifier("nombre")</b>: elige un bean concreto cuando hay varios del mismo tipo.</li><li><b>@Primary</b>: marca el bean por defecto.</li><li><b>@Scope("prototype")</b>: cambia el alcance (por defecto singleton).</li></ul>`],
+["Anotaciones web",`<pre><code>@RestController
+@RequestMapping("/api/v1/productos")              // prefijo común de la clase
+public class ProductoController {
+
+    @GetMapping                                    // GET /api/v1/productos?nombre=ta&amp;page=0
+    public List&lt;Producto&gt; buscar(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(defaultValue = "0") int page) { ... }
+
+    @GetMapping("/{id}")                           // GET /api/v1/productos/5
+    public Producto uno(@PathVariable Long id) { ... }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)            // responde 201
+    public Producto crear(@RequestBody Producto p) { ... }
+
+    @PutMapping("/{id}")
+    public Producto reemplazar(@PathVariable Long id, @RequestBody Producto p) { ... }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)         // responde 204
+    public void borrar(@PathVariable Long id) { ... }
+
+    @GetMapping("/idioma")
+    public String idioma(@RequestHeader("Accept-Language") String idioma) { return idioma; }
+}</code></pre>
+<ul><li><b>@RequestMapping</b>: ruta (y método) genérico; <b>@GetMapping, @PostMapping, @PutMapping, @PatchMapping, @DeleteMapping</b> son atajos.</li><li><b>@PathVariable</b>: valor dentro de la ruta (<code>/{id}</code>). <b>@RequestParam</b>: parámetro de la query (<code>?page=0</code>). <b>@RequestBody</b>: el JSON del cuerpo convertido a objeto. <b>@RequestHeader</b>: un header.</li><li><b>@ResponseStatus</b>: código HTTP fijo. Para control total usa <code>ResponseEntity</code> (código + headers + cuerpo).</li><li><b>@CrossOrigin</b>: permite llamadas desde otro origen en el navegador (CORS).</li></ul>`],
+["Otras anotaciones que irás usando",`<ul><li><b>Validación</b> (Épica 9): <code>@Valid</code>, <code>@NotBlank</code>, <code>@NotNull</code>, <code>@Size</code>, <code>@Email</code>, <code>@Min</code>.</li><li><b>Errores</b> (Épica 9): <code>@RestControllerAdvice</code> y <code>@ExceptionHandler</code>.</li><li><b>Datos</b> (Épica 10): <code>@Entity</code>, <code>@Id</code>, <code>@Table</code>, <code>@Transactional</code>.</li><li><b>Ciclo de vida</b>: <code>@PostConstruct</code>, <code>@PreDestroy</code>. <b>Tareas</b>: <code>@Scheduled</code> (con <code>@EnableScheduling</code>). <b>Eventos</b>: <code>@EventListener</code>.</li><li><b>Pruebas</b> (Épica 12): <code>@SpringBootTest</code>, <code>@WebMvcTest</code> y la anotación para simular beans (<code>@MockitoBean</code> en versiones recientes, antes <code>@MockBean</code>).</li><li><b>Lombok</b> (opcional): <code>@Getter</code>, <code>@Data</code>, <code>@Slf4j</code>… generan código repetitivo.</li></ul>`],
+["Práctica",`<ol><li>Crea un <code>ProductoController</code> con los cinco endpoints del ejemplo usando un servicio y repositorio en memoria.</li><li>Prueba cada anotación de entrada: un <code>@PathVariable</code>, dos <code>@RequestParam</code> (uno opcional y uno con valor por defecto), un <code>@RequestBody</code> y un <code>@RequestHeader</code>.</li><li>Declara un bean con <code>@Bean</code> en una clase <code>@Configuration</code> (por ejemplo un <code>Clock</code>) e inyéctalo en un servicio.</li><li>Haz dos implementaciones de una interfaz y elige entre ellas con <code>@Primary</code> y <code>@Qualifier</code>.</li><li>Escribe un <code>@PostConstruct</code> que cargue datos de ejemplo al arrancar.</li><li>Agrega <code>debug=true</code>, arranca y busca en el informe la autoconfiguración del servidor web.</li><li>Haz una tabla propia (anotación → qué hace → ejemplo) con las 20 que más uses.</li></ol>`],
+["Errores comunes",`<ul><li><b>@Controller en lugar de @RestController</b>: Spring busca una vista HTML y falla o devuelve la página de error.</li><li><b>Olvidar @RequestBody</b>: los campos del JSON llegan vacíos o null.</li><li><b>Mismo mapeo duplicado</b> en dos métodos: <i>Ambiguous mapping</i> al arrancar.</li><li><b>@PathVariable con otro nombre</b> que la ruta sin indicarlo: usa <code>@PathVariable("id")</code> o el mismo nombre.</li><li><b>Imports incorrectos</b> (por ejemplo <code>@GetMapping</code> de otro paquete): usa <code>org.springframework.web.bind.annotation</code>.</li><li><b>Anotar una interfaz o clase fuera del paquete base</b> y esperar que se registre.</li><li><b>Abusar de @Autowired en campos</b>.</li></ul>`],
+["Cómo sé que lo domino",`<ul><li>Distingo @Component, @Service, @Repository y @RestController.</li><li>Uso @PathVariable, @RequestParam, @RequestBody y @RequestHeader sin consultar.</li><li>Sé cuándo @Autowired es innecesario.</li><li>Explico cómo Spring descubre y conecta los beans.</li></ul>`]
+]},
+"7-4":{e:"8. Spring Boot básico",t:"Configuración con application.yml y perfiles (dev/prod)",s:[
+["Dónde se configura",`<p>Spring Boot lee la configuración de <code>src/main/resources</code>. Puedes usar <code>application.properties</code> o <code>application.yml</code> (mismo contenido, distinta sintaxis; no mezcles ambos en el mismo proyecto). YAML es más legible al anidar:</p>
+<pre><code># application.properties
+server.port=8080
+spring.application.name=tienda
+logging.level.com.miempresa=DEBUG
+
+# application.yml (equivalente)
+server:
+  port: 8080
+spring:
+  application:
+    name: tienda
+logging:
+  level:
+    com.miempresa: DEBUG</code></pre>
+<p>Reglas de YAML: la <b>indentación con espacios</b> (nunca tabuladores) define la jerarquía, los dos puntos van seguidos de un espacio y las listas usan guiones. Un error de sangría rompe el arranque. Propiedades que conocerás: <code>server.port</code>, <code>spring.application.name</code>, <code>logging.level.*</code>, y más adelante <code>spring.datasource.*</code> y <code>spring.jpa.*</code>.</p>`],
+["Leer tus propias propiedades",`<pre><code>app:
+  nombre: Tienda Demo
+  max-intentos: 3
+  contacto:
+    email: soporte@tienda.com</code></pre>
+<p><b>Opción 1: @Value</b> para un valor suelto:</p>
+<pre><code>@Value("\${app.nombre}")
+private String nombre;
+
+@Value("\${app.max-intentos:5}")     // 5 es el valor por defecto si no existe
+private int maxIntentos;</code></pre>
+<p><b>Opción 2 (recomendada): @ConfigurationProperties</b>, agrupa y tipa todas las propiedades de un prefijo:</p>
+<pre><code>@ConfigurationProperties(prefix = "app")
+public record AppProperties(String nombre, int maxIntentos, Contacto contacto) {
+    public record Contacto(String email) { }
+}
+
+// En la clase principal, para registrarla:
+@SpringBootApplication
+@ConfigurationPropertiesScan
+public class TiendaApplication { ... }
+
+// Uso por inyección:
+@RestController
+public class InfoController {
+    private final AppProperties props;
+    public InfoController(AppProperties props) { this.props = props; }
+
+    @GetMapping("/info")
+    public AppProperties info() { return props; }
+}</code></pre>
+<p>El <b>relaxed binding</b> hace que <code>max-intentos</code> (YAML) se enlace con <code>maxIntentos</code> (Java). Las propiedades personalizadas no se validan solas: puedes añadir <code>@Validated</code> y anotaciones como <code>@NotBlank</code> para fallar al arrancar si falta algo esencial.</p>`],
+["Perfiles: dev, prod y más",`<p>Un <b>perfil</b> es un conjunto de configuración para un entorno: tu máquina (dev), pruebas (test) o producción (prod). Lo normal es tener un archivo base y uno por perfil:</p>
+<pre><code>src/main/resources/
+ ├─ application.yml          valores comunes (se carga siempre)
+ ├─ application-dev.yml      se suma/sobrescribe cuando el perfil "dev" está activo
+ └─ application-prod.yml     idem para "prod"</code></pre>
+<pre><code># application.yml
+spring:
+  application:
+    name: tienda
+  profiles:
+    active: dev            # perfil por defecto
+
+# application-dev.yml
+server:
+  port: 8080
+logging:
+  level:
+    com.miempresa: DEBUG
+
+# application-prod.yml
+server:
+  port: 80
+logging:
+  level:
+    com.miempresa: INFO
+app:
+  nombre: Tienda</code></pre>
+<p><b>Cómo activar un perfil</b> (por orden de uso real):</p>
+<ul><li>Variable de entorno: <code>SPRING_PROFILES_ACTIVE=prod</code> (lo habitual en servidores y Docker).</li><li>Argumento: <code>java -jar tienda.jar --spring.profiles.active=prod</code>.</li><li>En IntelliJ: <b>Run → Edit Configurations → Active profiles</b>.</li><li>En el yml con <code>spring.profiles.active</code> (solo como valor por defecto de desarrollo).</li></ul>
+<p>También puedes condicionar beans: <code>@Profile("dev")</code> sobre una clase o método <code>@Bean</code> (por ejemplo cargar datos de ejemplo solo en dev). Y existe la variante de un solo archivo con documentos separados por <code>---</code> y <code>spring.config.activate.on-profile: prod</code>, pero los archivos separados son más claros.</p>`],
+["Secretos, variables de entorno y precedencia",`<p><b>Nunca guardes contraseñas ni claves reales en el repositorio.</b> Referencia variables de entorno con placeholders y, si quieres, un valor por defecto solo para desarrollo:</p>
+<pre><code>spring:
+  datasource:
+    url: \${DB_URL:jdbc:postgresql://localhost:5432/tienda}
+    username: \${DB_USER:app_tienda}
+    password: \${DB_PASSWORD}       # sin valor por defecto: en prod debe existir</code></pre>
+<p>Spring también mapea variables de entorno automáticamente: <code>SPRING_DATASOURCE_PASSWORD</code> equivale a <code>spring.datasource.password</code>, y <code>APP_MAX_INTENTOS</code> a <code>app.max-intentos</code>.</p>
+<p><b>Orden de precedencia</b> (de mayor a menor, simplificado): argumentos de línea de comandos → variables de entorno → <code>application-{perfil}.yml</code> → <code>application.yml</code>. Lo más externo gana, así puedes cambiar valores sin recompilar. Un <code>application-prod.yml</code> colocado junto al jar también lo detecta Spring.</p>`],
+["Práctica",`<ol><li>Convierte el <code>application.properties</code> generado en <code>application.yml</code>.</li><li>Define <code>app.nombre</code> y <code>app.max-intentos</code>, crea el record <code>AppProperties</code> y un endpoint <code>GET /info</code> que lo devuelva.</li><li>Crea <code>application-dev.yml</code> y <code>application-prod.yml</code> con distinto puerto, nivel de log y <code>app.nombre</code>.</li><li>Ejecuta con cada perfil desde IntelliJ (Active profiles) y comprueba que <code>/info</code> y el puerto cambian.</li><li>Genera el jar y ejecútalo con <code>SPRING_PROFILES_ACTIVE=prod java -jar ...</code> (en Windows: <code>set SPRING_PROFILES_ACTIVE=prod</code> antes).</li><li>Sobrescribe un valor con argumento: <code>--app.max-intentos=10</code> y confirma que gana.</li><li>Crea un bean con <code>@Profile("dev")</code> que imprima "Cargando datos de ejemplo" y verifica que solo aparece en dev.</li><li>Agrega un placeholder con valor por defecto y luego con variable de entorno, y compruébalo.</li></ol>`],
+["Errores comunes",`<ul><li><b>Tabuladores o sangría incorrecta</b> en YAML: error de parseo al arrancar.</li><li><b>Archivo mal nombrado</b>: debe ser exactamente <code>application-dev.yml</code> (con guion).</li><li><b>Olvidar activar el perfil</b> y creer que se leyó la configuración de prod.</li><li><b>Tener properties y yml</b> a la vez con valores contradictorios.</li><li><b>Could not resolve placeholder 'X'</b>: la propiedad o variable de entorno no existe y no hay valor por defecto.</li><li><b>@ConfigurationProperties que llega vacío</b>: falta <code>@ConfigurationPropertiesScan</code> o <code>@EnableConfigurationProperties</code>, o el prefijo no coincide.</li><li><b>Subir secretos a Git</b>: si pasa, rótalos (borrar el commit no basta).</li><li><b>Mismo puerto en dev y otra aplicación</b>: Port already in use.</li></ul>`],
+["Cómo sé que lo domino",`<ul><li>Escribo configuración en YAML sin errores de sangría.</li><li>Leo propiedades con @Value y con @ConfigurationProperties.</li><li>Creo perfiles dev y prod y sé activarlos de tres maneras.</li><li>Manejo secretos con variables de entorno y conozco la precedencia.</li></ul>`]
+]},
+"8-0":{e:"9. API REST completa (CRUD)",t:"Endpoints GET, POST, PUT y DELETE",s:[
+["El contrato de la API",`<p>Vamos a completar el CRUD de <code>clientes</code> siguiendo las reglas REST de la Épica 7. Este es el contrato que vamos a implementar:</p>
+<pre><code>Operación         Método   URI                       Éxito              Error
+Listar            GET      /api/v1/clientes          200 + lista        -
+Obtener uno       GET      /api/v1/clientes/{id}     200 + objeto       404
+Crear             POST     /api/v1/clientes          201 + Location    400
+Reemplazar        PUT      /api/v1/clientes/{id}     200 + objeto       404
+Eliminar          DELETE   /api/v1/clientes/{id}     204 sin cuerpo     404</code></pre>
+<p>Partimos del proyecto de la Épica 8 (controller, service y repository en memoria). El prefijo <code>/api/v1</code> versiona la API: si algún día cambias el contrato de forma incompatible, publicas <code>/api/v2</code> sin romper a los clientes actuales.</p>`],
+["Modelo, excepción y repositorio",`<pre><code>// model/Cliente.java
+public record Cliente(Long id, String nombre, String email, String ciudad) {
+    public Cliente conId(Long nuevoId) {            // copia con otro id (los records son inmutables)
+        return new Cliente(nuevoId, nombre, email, ciudad);
+    }
+}
+
+// exception/RecursoNoEncontradoException.java
+@ResponseStatus(HttpStatus.NOT_FOUND)               // por ahora basta para devolver 404
+public class RecursoNoEncontradoException extends RuntimeException {
+    public RecursoNoEncontradoException(String mensaje) { super(mensaje); }
+}
+
+// repository/ClienteRepository.java
+@Repository
+public class ClienteRepository {
+    private final Map&lt;Long, Cliente&gt; datos = new ConcurrentHashMap&lt;&gt;();
+    private final AtomicLong secuencia = new AtomicLong();
+
+    public List&lt;Cliente&gt; buscarTodos() { return new ArrayList&lt;&gt;(datos.values()); }
+    public Optional&lt;Cliente&gt; buscarPorId(long id) { return Optional.ofNullable(datos.get(id)); }
+    public boolean existe(long id) { return datos.containsKey(id); }
+
+    public Cliente guardar(Cliente c) {
+        Long id = (c.id() != null) ? c.id() : secuencia.incrementAndGet();
+        Cliente guardado = c.conId(id);
+        datos.put(id, guardado);
+        return guardado;
+    }
+
+    public boolean borrar(long id) { return datos.remove(id) != null; }
+}</code></pre>`],
+["El servicio",`<pre><code>@Service
+public class ClienteService {
+    private final ClienteRepository repo;
+    public ClienteService(ClienteRepository repo) { this.repo = repo; }
+
+    public List&lt;Cliente&gt; listar() { return repo.buscarTodos(); }
+
+    public Cliente obtener(long id) {
+        return repo.buscarPorId(id)
+                .orElseThrow(() -&gt; new RecursoNoEncontradoException("Cliente " + id + " no existe"));
+    }
+
+    public Cliente crear(Cliente c) {
+        if (c.nombre() == null || c.nombre().isBlank()) {
+            throw new IllegalArgumentException("El nombre es obligatorio");
+        }
+        return repo.guardar(c.conId(null));        // ignora cualquier id que mande el cliente
+    }
+
+    public Cliente actualizar(long id, Cliente datos) {
+        if (!repo.existe(id)) throw new RecursoNoEncontradoException("Cliente " + id + " no existe");
+        return repo.guardar(datos.conId(id));      // el id sale de la URL, no del cuerpo
+    }
+
+    public void eliminar(long id) {
+        if (!repo.borrar(id)) throw new RecursoNoEncontradoException("Cliente " + id + " no existe");
+    }
+}</code></pre>
+<p>Fíjate en <code>conId(null)</code> al crear: si el JSON trae un <code>id</code>, sin esa línea un cliente podría <b>sobrescribir un registro ajeno</b>. Es un error clásico (<i>mass assignment</i>) que la lección de DTOs resuelve de forma estructural.</p>`],
+["El controller",`<pre><code>@RestController
+@RequestMapping("/api/v1/clientes")
+public class ClienteController {
+    private final ClienteService servicio;
+    public ClienteController(ClienteService servicio) { this.servicio = servicio; }
+
+    @GetMapping
+    public List&lt;Cliente&gt; listar() { return servicio.listar(); }
+
+    @GetMapping("/{id}")
+    public Cliente obtener(@PathVariable long id) { return servicio.obtener(id); }
+
+    @PostMapping
+    public ResponseEntity&lt;Cliente&gt; crear(@RequestBody Cliente c) {
+        Cliente creado = servicio.crear(c);
+        URI ubicacion = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}").buildAndExpand(creado.id()).toUri();       // /api/v1/clientes/3
+        return ResponseEntity.created(ubicacion).body(creado);            // 201 + header Location
+    }
+
+    @PutMapping("/{id}")
+    public Cliente reemplazar(@PathVariable long id, @RequestBody Cliente c) {
+        return servicio.actualizar(id, c);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void eliminar(@PathVariable long id) { servicio.eliminar(id); }
+}</code></pre>
+<p>Import útil: <code>org.springframework.web.servlet.support.ServletUriComponentsBuilder</code>.</p>`],
+["Probar el ciclo completo",`<pre><code>curl -i -X POST http://localhost:8080/api/v1/clientes -H "Content-Type: application/json" -d '{"nombre":"Ana","email":"ana@correo.com","ciudad":"Lima"}'
+curl -i http://localhost:8080/api/v1/clientes
+curl -i http://localhost:8080/api/v1/clientes/1
+curl -i -X PUT http://localhost:8080/api/v1/clientes/1 -H "Content-Type: application/json" -d '{"nombre":"Ana Ruiz","email":"ana@correo.com","ciudad":"Cusco"}'
+curl -i -X DELETE http://localhost:8080/api/v1/clientes/1
+curl -i http://localhost:8080/api/v1/clientes/1</code></pre>
+<p>Resultado esperado: 201 (con <code>Location</code>), 200, 200, 200 con la ciudad cambiada, 204 y finalmente 404. Hazlo mejor aún con una colección de Postman y tests para cada paso.</p>`],
+["Decisiones de diseño",`<ul><li><b>PUT reemplaza el recurso completo</b>: los campos que no envíes quedan vacíos. Para cambiar solo algunos campos se usa <b>PATCH</b> (lo practicarás).</li><li><b>Idempotencia</b>: repetir un PUT deja el mismo resultado. Repetir un DELETE: la segunda vez el recurso ya no existe; devolver 404 es válido (y lo usual), también 204. Lo importante es ser consistente.</li><li><b>PUT sobre un id inexistente</b>: aquí devolvemos 404; otras APIs lo crean (<i>upsert</i>). Decide y documenta.</li><li><b>El id de la URL manda</b>, no el del cuerpo.</li><li><b>201 + Location</b> al crear permite al cliente saber dónde está el nuevo recurso.</li><li><b>Consumes/produces</b>: puedes restringir con <code>@PostMapping(consumes = "application/json")</code>; por defecto Spring ya produce JSON.</li></ul>`],
+["Práctica",`<ol><li>Implementa el CRUD completo de <code>Cliente</code> y pruébalo con la secuencia de curl anterior y con Postman.</li><li>Construye lo mismo para <code>Producto</code> (nombre, precio, stock) siguiendo el mismo patrón en sus tres capas.</li><li>Agrega <code>PATCH /{id}</code> que actualice solo los campos no nulos del cuerpo.</li><li>Intenta un POST con un <code>id</code> en el JSON y comprueba que se ignora; quita <code>conId(null)</code> y observa el problema.</li><li>Agrega <code>HEAD</code> o <code>GET /count</code> que devuelva cuántos clientes hay.</li><li>Escribe pruebas JUnit del <code>ClienteService</code>: crear, actualizar inexistente (espera la excepción) y eliminar dos veces.</li></ol>`],
+["Errores comunes",`<ul><li><b>405 Method Not Allowed</b>: el método HTTP no coincide con el mapeo.</li><li><b>Campos null</b> al recibir: falta <code>@RequestBody</code> o el JSON usa nombres distintos.</li><li><b>415 Unsupported Media Type</b>: falta <code>Content-Type: application/json</code>.</li><li><b>Devolver 200 al crear</b> en lugar de 201 con Location.</li><li><b>404 devuelto como 500</b>: la excepción no tiene @ResponseStatus ni un handler (se completa en la lección de errores).</li><li><b>Confiar en el id del cuerpo</b> en lugar del de la URL.</li></ul>`],
+["Cómo sé que lo domino",`<ul><li>Implemento un CRUD completo con los códigos HTTP correctos.</li><li>Devuelvo 201 con Location al crear y 204 al eliminar.</li><li>Explico PUT vs PATCH e idempotencia de DELETE.</li><li>Sé por qué el id debe venir de la URL.</li></ul>`]
+]},
+"8-1":{e:"9. API REST completa (CRUD)",t:"DTOs y mapeo (MapStruct)",s:[
+["Por qué usar DTOs",`<p>Un <b>DTO</b> (Data Transfer Object) es la clase que define lo que <b>entra y sale por la API</b>, separada de tu modelo interno (entidad). Exponer la entidad directamente es un error común con consecuencias reales:</p>
+<ul><li><b>Seguridad</b>: se filtran campos internos (contraseñas, roles, banderas) o el cliente puede <b>enviarlos</b> y modificarlos (<i>mass assignment</i>: mandar <code>"rol":"ADMIN"</code> o <code>"id":1</code>).</li><li><b>Acoplamiento</b>: renombrar una columna o cambiar una relación rompe el contrato público.</li><li><b>Distintas formas</b>: al crear no hay id; al responder sí; en un listado quizás solo 3 campos.</li><li><b>Problemas técnicos</b>: relaciones bidireccionales que generan bucles infinitos al convertir a JSON y carga perezosa (JPA).</li></ul>
+<pre><code>JSON entrante → ClienteRequest ─(mapper)→ Cliente (entidad) → servicio → repositorio
+JSON saliente ← ClienteResponse ←(mapper)─ Cliente</code></pre>`],
+["DTOs con records",`<p>Los <code>record</code> son perfectos como DTO: inmutables y sin código repetitivo. Conviene un DTO distinto por caso de uso:</p>
+<pre><code>public record ClienteRequest(String nombre, String email, String ciudad) { }
+
+public record ClienteResponse(Long id, String nombre, String email, String ciudad, LocalDateTime creadoEn) { }</code></pre>
+<p>La entidad pasa a ser una <b>clase normal</b> (no record), porque en la Épica 10 será una entidad JPA, y JPA exige constructor vacío y campos modificables:</p>
+<pre><code>public class Cliente {
+    private Long id;
+    private String nombre;
+    private String email;
+    private String ciudad;
+    private LocalDateTime creadoEn;
+
+    public Cliente() { }
+    // getters y setters  (IntelliJ: Alt+Insert → Getter and Setter)
+}</code></pre>
+<p>Adapta el repositorio: <code>guardar</code> asigna el id con <code>setId(...)</code> y, al crear, <code>setCreadoEn(LocalDateTime.now())</code>.</p>
+<p>Mapeo manual (válido en proyectos pequeños): <code>public static ClienteResponse desde(Cliente c) { return new ClienteResponse(c.getId(), ...); }</code>. Se vuelve tedioso y propenso a errores al crecer: ahí entra MapStruct.</p>`],
+["MapStruct: configuración",`<p><b>MapStruct</b> genera el código de mapeo <b>en tiempo de compilación</b> (sin reflexión: rápido y verificable). Agrega al <code>pom.xml</code> (usa la última versión estable 1.6.x):</p>
+<pre><code>&lt;properties&gt;
+    &lt;mapstruct.version&gt;1.6.3&lt;/mapstruct.version&gt;
+&lt;/properties&gt;
+
+&lt;dependencies&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.mapstruct&lt;/groupId&gt;
+        &lt;artifactId&gt;mapstruct&lt;/artifactId&gt;
+        &lt;version&gt;\${mapstruct.version}&lt;/version&gt;
+    &lt;/dependency&gt;
+&lt;/dependencies&gt;
+
+&lt;build&gt;
+    &lt;plugins&gt;
+        &lt;plugin&gt;
+            &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+            &lt;artifactId&gt;maven-compiler-plugin&lt;/artifactId&gt;
+            &lt;configuration&gt;
+                &lt;annotationProcessorPaths&gt;
+                    &lt;path&gt;
+                        &lt;groupId&gt;org.mapstruct&lt;/groupId&gt;
+                        &lt;artifactId&gt;mapstruct-processor&lt;/artifactId&gt;
+                        &lt;version&gt;\${mapstruct.version}&lt;/version&gt;
+                    &lt;/path&gt;
+                &lt;/annotationProcessorPaths&gt;
+            &lt;/configuration&gt;
+        &lt;/plugin&gt;
+    &lt;/plugins&gt;
+&lt;/build&gt;</code></pre>
+<p>Si usas <b>Lombok</b>, hay que declarar <code>lombok</code> y <code>lombok-mapstruct-binding</code> <b>antes</b> de mapstruct-processor dentro de <code>annotationProcessorPaths</code>. Tras editar, recarga Maven.</p>`],
+["Definir el mapper",`<pre><code>@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
+public interface ClienteMapper {
+
+    ClienteResponse toResponse(Cliente cliente);
+
+    List&lt;ClienteResponse&gt; toResponseList(List&lt;Cliente&gt; clientes);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "creadoEn", ignore = true)
+    Cliente toEntity(ClienteRequest request);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "creadoEn", ignore = true)
+    void actualizar(ClienteRequest request, @MappingTarget Cliente cliente);   // actualiza un objeto existente
+}</code></pre>
+<ul><li><code>componentModel = "spring"</code> genera una clase <code>@Component</code> que puedes inyectar.</li><li>Los campos con el <b>mismo nombre</b> se mapean solos; <code>@Mapping</code> cubre las excepciones: <code>@Mapping(source = "direccion.ciudad", target = "ciudad")</code> para anidados, <code>ignore = true</code> para omitir.</li><li><code>unmappedTargetPolicy = ERROR</code> hace fallar la compilación si olvidas mapear un campo destino: te protege cuando agregas columnas nuevas.</li><li>Para cálculos: un <code>default</code> method en la interfaz, <code>expression = "java(...)"</code> o <code>@Named</code> con <code>qualifiedByName</code>.</li><li>Mira el resultado generado en <code>target/generated-sources/annotations/.../ClienteMapperImpl.java</code>: es código Java normal.</li></ul>`],
+["Usar el mapper en el controller",`<pre><code>@RestController
+@RequestMapping("/api/v1/clientes")
+public class ClienteController {
+    private final ClienteService servicio;
+    private final ClienteMapper mapper;
+
+    public ClienteController(ClienteService servicio, ClienteMapper mapper) {
+        this.servicio = servicio;
+        this.mapper = mapper;
+    }
+
+    @GetMapping
+    public List&lt;ClienteResponse&gt; listar() {
+        return mapper.toResponseList(servicio.listar());
+    }
+
+    @PostMapping
+    public ResponseEntity&lt;ClienteResponse&gt; crear(@RequestBody ClienteRequest request) {
+        Cliente creado = servicio.crear(mapper.toEntity(request));
+        URI ubicacion = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}").buildAndExpand(creado.getId()).toUri();
+        return ResponseEntity.created(ubicacion).body(mapper.toResponse(creado));
+    }
+
+    @PutMapping("/{id}")
+    public ClienteResponse reemplazar(@PathVariable long id, @RequestBody ClienteRequest request) {
+        return mapper.toResponse(servicio.actualizar(id, mapper.toEntity(request)));
+    }
+}</code></pre>
+<p>El <b>servicio trabaja con entidades</b> y no conoce los DTOs; el controller es la frontera que traduce JSON ↔ dominio. Así, aunque el cliente envíe <code>"id": 99</code> en el JSON, <code>ClienteRequest</code> no tiene ese campo y simplemente se ignora.</p>`],
+["Práctica",`<ol><li>Convierte <code>Cliente</code> en clase y crea <code>ClienteRequest</code> y <code>ClienteResponse</code>.</li><li>Configura MapStruct, compila y abre <code>ClienteMapperImpl</code> para ver qué generó.</li><li>Cambia el controller para que use solo DTOs y verifica con Postman que el id enviado en un POST se ignora.</li><li>Agrega un campo <code>telefono</code> a la entidad sin tocar el mapper: ¿qué pasa con <code>unmappedTargetPolicy = ERROR</code>? Corrígelo.</li><li>Crea un <code>ClienteResumenResponse</code> (solo id y nombre) para el listado y un método extra en el mapper.</li><li>Haz lo mismo para <code>Producto</code>, incluyendo un campo calculado (por ejemplo <code>precioConIva</code>) con un <code>default</code> method.</li></ol>`],
+["Errores comunes",`<ul><li><b>NullPointerException con el mapper</b>: no se generó la implementación; falta el annotation processor o hay que recompilar (Build → Rebuild Project).</li><li><b>Unmapped target properties</b>: te falta mapear u omitir un campo destino.</li><li><b>Orden de processors con Lombok</b>: el binding debe ir antes de mapstruct-processor.</li><li><b>Devolver la entidad en lugar del DTO</b> en algún endpoint "por rapidez".</li><li><b>Un único DTO para todo</b> (crear, actualizar, responder): termina con campos que no aplican y validaciones imposibles.</li><li><b>Mapear dentro del servicio y del controller a la vez</b>: elige una frontera.</li></ul>`],
+["Cómo sé que lo domino",`<ul><li>Explico qué problemas evita un DTO (mass assignment, acoplamiento).</li><li>Diseño DTOs de entrada y salida distintos con records.</li><li>Configuro MapStruct y uso @Mapping, @MappingTarget e ignore.</li><li>Sé dónde vive cada responsabilidad (controller mapea, servicio usa entidades).</li></ul>`]
+]},
+"8-2":{e:"9. API REST completa (CRUD)",t:"Validaciones (@Valid, Bean Validation)",s:[
+["Por qué validar",`<p>Nunca confíes en los datos que llegan por HTTP. Validar en el borde de tu aplicación evita guardar basura y protege contra errores y abusos. <b>Bean Validation</b> (especificación Jakarta; implementación Hibernate Validator) permite declarar las reglas con <b>anotaciones</b> sobre los DTOs, en lugar de llenar de <code>if</code> tu código. Necesitas el starter (en Initializr: <b>Validation</b>):</p>
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-validation&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+<p>Los imports son de <code>jakarta.validation.constraints.*</code> (no <code>javax</code>).</p>`],
+["Anotaciones de validación",`<ul><li><b>@NotNull</b>: no puede ser null. <b>@NotEmpty</b>: no null ni vacío (String, colección, array). <b>@NotBlank</b>: texto con al menos un carácter que no sea espacio (solo Strings).</li><li><b>@Size(min, max)</b>: longitud de texto o tamaño de colección.</li><li><b>@Min / @Max</b>: valores enteros. <b>@Positive / @PositiveOrZero / @Negative</b>. <b>@DecimalMin / @DecimalMax / @Digits</b> para BigDecimal.</li><li><b>@Email</b>: formato de correo. <b>@Pattern(regexp)</b>: expresión regular.</li><li><b>@Past / @PastOrPresent / @Future / @FutureOrPresent</b>: fechas. <b>@AssertTrue / @AssertFalse</b>.</li><li><b>@Valid</b>: indica que se valide también el objeto anidado o los elementos de una lista.</li></ul>
+<p>Nota: casi todas consideran <code>null</code> como válido (excepto @NotNull/@NotEmpty/@NotBlank); por eso se combinan, por ejemplo <code>@NotBlank @Email</code>.</p>`],
+["Validar un DTO",`<pre><code>public record ClienteRequest(
+        @NotBlank(message = "El nombre es obligatorio")
+        @Size(max = 100, message = "El nombre no puede superar 100 caracteres")
+        String nombre,
+
+        @NotBlank(message = "El email es obligatorio")
+        @Email(message = "El email no tiene un formato válido")
+        String email,
+
+        @Size(max = 80, message = "La ciudad no puede superar 80 caracteres")
+        String ciudad,
+
+        @NotNull(message = "La fecha de nacimiento es obligatoria")
+        @Past(message = "La fecha de nacimiento debe estar en el pasado")
+        LocalDate fechaNacimiento
+) { }
+
+public record ProductoRequest(
+        @NotBlank String nombre,
+        @NotNull @DecimalMin(value = "0.01", message = "El precio debe ser mayor que 0") BigDecimal precio,
+        @Min(value = 0, message = "El stock no puede ser negativo") Integer stock,
+        @Pattern(regexp = "[A-Z]{3}-[0-9]{4}", message = "Código con formato ABC-1234") String codigo,
+        @NotEmpty(message = "Debe tener al menos una categoría") List&lt;@NotBlank String&gt; categorias
+) { }</code></pre>
+<p>Para activar la validación en el controller agrega <b>@Valid</b> junto a <code>@RequestBody</code>:</p>
+<pre><code>@PostMapping
+public ResponseEntity&lt;ClienteResponse&gt; crear(@Valid @RequestBody ClienteRequest request) { ... }</code></pre>
+<p>Si hay errores, Spring no ejecuta el método y lanza <code>MethodArgumentNotValidException</code> → responde <b>400</b>. En la próxima lección personalizas esa respuesta. Para validar objetos anidados, marca el campo con <code>@Valid</code>: <code>@Valid DireccionRequest direccion</code>, o <code>@Valid List&lt;ItemRequest&gt; items</code>.</p>`],
+["Validar parámetros de ruta y query",`<pre><code>@GetMapping("/{id}")
+public ClienteResponse obtener(@PathVariable @Positive Long id) { ... }
+
+@GetMapping
+public List&lt;ClienteResponse&gt; listar(@RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) { ... }</code></pre>
+<p>En versiones recientes de Spring (6.1 en adelante) basta con anotar los parámetros: si algo falla se lanza <code>HandlerMethodValidationException</code> (400). En versiones antiguas había que poner <code>@Validated</code> a nivel de clase y la excepción era <code>ConstraintViolationException</code>. Conviene manejar ambas en tu manejador global.</p>`],
+["Validaciones propias",`<p>Cuando las anotaciones estándar no alcanzan, creas la tuya:</p>
+<pre><code>@Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.RECORD_COMPONENT})
+@Retention(RetentionPolicy.RUNTIME)
+@Constraint(validatedBy = TelefonoValidator.class)
+public @interface Telefono {
+    String message() default "Teléfono no válido (9 dígitos)";
+    Class&lt;?&gt;[] groups() default {};
+    Class&lt;? extends Payload&gt;[] payload() default {};
+}
+
+public class TelefonoValidator implements ConstraintValidator&lt;Telefono, String&gt; {
+    @Override
+    public boolean isValid(String valor, ConstraintValidatorContext contexto) {
+        return valor == null || valor.matches("[0-9]{9}");     // null lo controla @NotNull si hace falta
+    }
+}
+
+// Uso:
+public record ClienteRequest(..., @Telefono String telefono) { }</code></pre>
+<p>Para reglas que cruzan varios campos (fecha de fin posterior a la de inicio) se anota la clase o se usa un método <code>@AssertTrue</code>.</p>`],
+["Dónde va cada validación",`<ul><li><b>Bean Validation en el DTO</b>: forma y formato de los datos (obligatorio, longitud, rango, formato).</li><li><b>Servicio</b>: reglas de negocio que dependen del estado (email ya registrado → 409, saldo suficiente).</li><li><b>Base de datos</b>: NOT NULL, UNIQUE, CHECK y FK como última defensa.</li></ul>
+<p>Mensajes personalizables con <code>message = "..."</code> o, para internacionalizar, claves entre llaves (<code>message = "{cliente.nombre.obligatorio}"</code>) definidas en <code>ValidationMessages.properties</code>.</p>
+<p><b>Probar validaciones sin levantar Spring:</b></p>
+<pre><code>Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+Set&lt;ConstraintViolation&lt;ClienteRequest&gt;&gt; errores =
+        validator.validate(new ClienteRequest("", "no-es-email", null, null));
+assertEquals(4, errores.size());</code></pre>`],
+["Práctica",`<ol><li>Agrega el starter de validación y anota <code>ClienteRequest</code> y <code>ProductoRequest</code>.</li><li>Pon <code>@Valid</code> en los POST y PUT y prueba con Postman JSON inválidos: nombre vacío, email sin @, precio 0, código mal formado.</li><li>Observa la respuesta 400 por defecto y qué información trae.</li><li>Valida <code>@PathVariable</code> con <code>@Positive</code> y prueba <code>/clientes/-5</code>.</li><li>Crea la anotación propia <code>@Telefono</code> y úsala.</li><li>Escribe tests JUnit con <code>Validator</code> para cada regla del DTO (casos válidos e inválidos).</li><li>Agrega la regla de negocio "email único" en el servicio (lanza una excepción propia).</li></ol>`],
+["Errores comunes",`<ul><li><b>No pasa nada al enviar datos inválidos</b>: falta <code>@Valid</code>, o falta el starter (desde Spring Boot 2.3 no viene incluido en web).</li><li><b>HV000030: No validator could be found for constraint NotBlank validating type Integer</b>: @NotBlank solo vale para Strings.</li><li><b>Objetos anidados sin validar</b>: falta @Valid en el campo.</li><li><b>Imports de javax.validation</b> en proyectos con Spring Boot 3 o superior: debe ser jakarta.</li><li><b>Mezclar @NotNull y @NotBlank</b> en Strings sin necesidad (@NotBlank ya implica no null).</li><li><b>Validar solo en el front-end</b>: el back-end siempre debe validar.</li></ul>`],
+["Cómo sé que lo domino",`<ul><li>Elijo entre @NotNull, @NotEmpty y @NotBlank con criterio.</li><li>Valido DTOs anidados, listas y parámetros.</li><li>Creo una validación personalizada.</li><li>Distingo validación de formato, de negocio y de base de datos.</li></ul>`]
+]},
+"8-3":{e:"9. API REST completa (CRUD)",t:"Manejo global de errores (@ControllerAdvice)",s:[
+["El problema",`<p>Por defecto, cuando algo falla Spring responde con un JSON genérico y, a menudo, con el código equivocado (un 500 donde correspondía 404 o 409). Una API profesional devuelve errores <b>consistentes, informativos y sin filtrar detalles internos</b>. En lugar de try/catch en cada controller, se centraliza con <code>@RestControllerAdvice</code>: una clase que intercepta las excepciones de todos los controllers y las traduce a respuestas HTTP.</p>`],
+["Estructura de la respuesta de error",`<pre><code>public record ErrorResponse(
+        LocalDateTime timestamp,
+        int status,
+        String error,
+        String mensaje,
+        String ruta,
+        Map&lt;String, String&gt; errores          // detalle por campo (solo en validaciones)
+) {
+    public static ErrorResponse de(HttpStatus status, String mensaje, String ruta) {
+        return new ErrorResponse(LocalDateTime.now(), status.value(), status.getReasonPhrase(), mensaje, ruta, null);
+    }
+}</code></pre>
+<p>Y excepciones propias que expresan el problema de negocio:</p>
+<pre><code>public class RecursoNoEncontradoException extends RuntimeException {
+    public RecursoNoEncontradoException(String mensaje) { super(mensaje); }
+}
+
+public class ConflictoException extends RuntimeException {          // p. ej. email duplicado
+    public ConflictoException(String mensaje) { super(mensaje); }
+}</code></pre>
+<p>Si usaste <code>@ResponseStatus</code> en la excepción, quítalo: ahora manda el manejador global.</p>`],
+["El manejador global",`<pre><code>@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(RecursoNoEncontradoException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; noEncontrado(RecursoNoEncontradoException ex, HttpServletRequest req) {
+        return respuesta(HttpStatus.NOT_FOUND, ex.getMessage(), req);
+    }
+
+    @ExceptionHandler(ConflictoException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; conflicto(ConflictoException ex, HttpServletRequest req) {
+        return respuesta(HttpStatus.CONFLICT, ex.getMessage(), req);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)          // falla @Valid en el cuerpo
+    public ResponseEntity&lt;ErrorResponse&gt; validacion(MethodArgumentNotValidException ex, HttpServletRequest req) {
+        Map&lt;String, String&gt; campos = new LinkedHashMap&lt;&gt;();
+        ex.getBindingResult().getFieldErrors()
+                .forEach(e -&gt; campos.put(e.getField(), e.getDefaultMessage()));
+        ErrorResponse cuerpo = new ErrorResponse(LocalDateTime.now(), 400, "Bad Request",
+                "Hay errores de validación", req.getRequestURI(), campos);
+        return ResponseEntity.badRequest().body(cuerpo);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)          // JSON mal formado
+    public ResponseEntity&lt;ErrorResponse&gt; jsonInvalido(HttpMessageNotReadableException ex, HttpServletRequest req) {
+        return respuesta(HttpStatus.BAD_REQUEST, "El cuerpo de la petición no es un JSON válido", req);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)      // /clientes/abc
+    public ResponseEntity&lt;ErrorResponse&gt; tipoInvalido(MethodArgumentTypeMismatchException ex, HttpServletRequest req) {
+        return respuesta(HttpStatus.BAD_REQUEST, "El parámetro '" + ex.getName() + "' tiene un valor inválido", req);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)                 // ruta inexistente
+    public ResponseEntity&lt;ErrorResponse&gt; rutaInexistente(NoResourceFoundException ex, HttpServletRequest req) {
+        return respuesta(HttpStatus.NOT_FOUND, "La ruta no existe", req);
+    }
+
+    @ExceptionHandler(Exception.class)                                // red de seguridad: errores inesperados
+    public ResponseEntity&lt;ErrorResponse&gt; inesperado(Exception ex, HttpServletRequest req) {
+        log.error("Error inesperado en {}", req.getRequestURI(), ex);   // el detalle va al log, no al cliente
+        return respuesta(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", req);
+    }
+
+    private ResponseEntity&lt;ErrorResponse&gt; respuesta(HttpStatus status, String mensaje, HttpServletRequest req) {
+        return ResponseEntity.status(status).body(ErrorResponse.de(status, mensaje, req.getRequestURI()));
+    }
+}</code></pre>
+<p>Imports: <code>jakarta.servlet.http.HttpServletRequest</code>, <code>org.springframework.web.servlet.resource.NoResourceFoundException</code> y las clases de <code>org.springframework.web.bind</code> / <code>org.springframework.http.converter</code>.</p>
+<p>Spring elige el <b>manejador más específico</b> para cada excepción. Ojo: si defines <code>@ExceptionHandler(Exception.class)</code>, también atraparía errores propios de Spring (ruta inexistente, método no permitido…) y los convertiría en 500; por eso se manejan explícitamente o se extiende <code>ResponseEntityExceptionHandler</code>, que ya traduce todas las excepciones estándar de Spring MVC.</p>`],
+["Respuesta resultante",`<pre><code>POST /api/v1/clientes   {"nombre":"", "email":"no-es-email"}
+
+HTTP/1.1 400 Bad Request
+{
+  "timestamp": "2026-10-14T10:30:00",
+  "status": 400,
+  "error": "Bad Request",
+  "mensaje": "Hay errores de validación",
+  "ruta": "/api/v1/clientes",
+  "errores": {
+    "nombre": "El nombre es obligatorio",
+    "email": "El email no tiene un formato válido"
+  }
+}</code></pre>
+<p>El front-end puede mostrar cada error junto a su campo, y tú obtienes siempre el mismo formato.</p>`],
+["Alternativa estándar: ProblemDetail",`<p>Spring 6 incorpora el formato estándar <b>RFC 9457 (Problem Details)</b> con la clase <code>ProblemDetail</code>:</p>
+<pre><code>@ExceptionHandler(RecursoNoEncontradoException.class)
+public ProblemDetail noEncontrado(RecursoNoEncontradoException ex) {
+    ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+    pd.setTitle("Recurso no encontrado");
+    return pd;                       // content-type: application/problem+json
+}</code></pre>
+<p>Con <code>spring.mvc.problemdetails.enabled=true</code> en la configuración, Spring responde con ese formato también a sus propios errores. Elige uno (tu <code>ErrorResponse</code> o ProblemDetail) y úsalo en <b>toda</b> la API.</p>`],
+["Buenas prácticas",`<ul><li><b>Nunca</b> devuelvas stack traces, nombres de clases ni mensajes de SQL al cliente: ayudan a un atacante. Regístralos en el log (lección de Logging).</li><li>Códigos correctos: 400 datos inválidos, 404 no existe, 409 conflicto, 500 solo para bugs reales.</li><li>Lanza excepciones <b>con significado</b> desde el servicio; el controller no debe tener try/catch.</li><li>Un <b>identificador de correlación</b> en el error y en el log ayuda a rastrear problemas en producción.</li><li>Agrega con el tiempo: <code>DataIntegrityViolationException</code> (409, Épica 10), <code>AccessDeniedException</code> (403) y autenticación (401), Épica 11.</li><li>Para limitar el alcance: <code>@RestControllerAdvice(basePackages = "...")</code>; un <code>@ExceptionHandler</code> dentro de un controller solo afecta a ese controller.</li></ul>`],
+["Práctica",`<ol><li>Crea <code>ErrorResponse</code>, las excepciones propias y el <code>GlobalExceptionHandler</code>.</li><li>Prueba con Postman cada caso y verifica el código y el cuerpo: cliente inexistente (404), JSON inválido (400), validación fallida (400 con campos), id no numérico <code>/clientes/abc</code> (400), ruta inexistente (404), método no permitido.</li><li>Lanza una <code>RuntimeException</code> en un endpoint temporal y confirma que el cliente recibe un 500 genérico mientras el detalle aparece en la consola.</li><li>Agrega la regla "email único" en el servicio con <code>ConflictoException</code> y verifica el 409.</li><li>Cambia a <code>ProblemDetail</code> en dos handlers y compara el JSON.</li><li>Escribe un test con <code>MockMvc</code> (Épica 12) o con Postman Tests que verifique los códigos.</li></ol>`],
+["Errores comunes",`<ul><li><b>Todo sale como 500</b>: el handler genérico captura excepciones de Spring que no manejaste explícitamente.</li><li><b>El handler no se ejecuta</b>: la clase está fuera del paquete base o falta la anotación.</li><li><b>@ControllerAdvice sin @ResponseBody</b>: usa <code>@RestControllerAdvice</code> para devolver JSON.</li><li><b>Exponer ex.getMessage() de excepciones inesperadas</b>.</li><li><b>Dos handlers para la misma excepción</b>: ambigüedad al arrancar.</li><li><b>Capturar la excepción en el controller y volver a lanzarla</b>: ruido innecesario.</li></ul>`],
+["Cómo sé que lo domino",`<ul><li>Explico qué hace @RestControllerAdvice y cómo elige el handler.</li><li>Devuelvo errores consistentes con el código HTTP correcto.</li><li>No filtro detalles internos y registro el error real en el log.</li><li>Sé manejar validaciones, JSON inválido y rutas inexistentes.</li></ul>`]
+]},
+"8-4":{e:"9. API REST completa (CRUD)",t:"Paginación, filtros y ordenamiento",s:[
+["Por qué paginar",`<p>Un <code>GET /clientes</code> que devuelve 100.000 registros satura la base de datos, la red y el navegador. La <b>paginación</b> devuelve la información por partes; el <b>filtrado</b> y el <b>ordenamiento</b> permiten al cliente pedir solo lo que necesita. Convención de parámetros:</p>
+<pre><code>GET /api/v1/clientes?page=0&amp;size=20&amp;sort=nombre,asc&amp;ciudad=Lima&amp;nombre=an
+
+page   número de página (empieza en 0)
+size   elementos por página
+sort   campo,dirección  (asc o desc)
+ciudad, nombre   filtros</code></pre>`],
+["Implementación en memoria (para entender el mecanismo)",`<p>Primero una clase genérica que representa una página de resultados:</p>
+<pre><code>public record Pagina&lt;T&gt;(
+        List&lt;T&gt; contenido,
+        int pagina,
+        int tamano,
+        long totalElementos,
+        int totalPaginas,
+        boolean ultima) {
+
+    public &lt;R&gt; Pagina&lt;R&gt; map(Function&lt;T, R&gt; f) {           // convertir entidades a DTOs
+        return new Pagina&lt;&gt;(contenido.stream().map(f).toList(), pagina, tamano, totalElementos, totalPaginas, ultima);
+    }
+}</code></pre>
+<p>En el servicio: filtrar, ordenar y recortar la lista.</p>
+<pre><code>public Pagina&lt;Cliente&gt; buscar(String nombre, String ciudad, int pagina, int tamano, String campo, boolean asc) {
+    Comparator&lt;Cliente&gt; orden = switch (campo) {             // lista blanca de campos permitidos
+        case "id" -&gt; Comparator.comparing(Cliente::getId);
+        case "nombre" -&gt; Comparator.comparing(Cliente::getNombre, String.CASE_INSENSITIVE_ORDER);
+        case "ciudad" -&gt; Comparator.comparing(Cliente::getCiudad, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+        default -&gt; throw new IllegalArgumentException("No se puede ordenar por: " + campo);
+    };
+    if (!asc) orden = orden.reversed();
+
+    List&lt;Cliente&gt; filtrados = repo.buscarTodos().stream()
+            .filter(c -&gt; nombre == null || c.getNombre().toLowerCase().contains(nombre.toLowerCase()))
+            .filter(c -&gt; ciudad == null || ciudad.equalsIgnoreCase(c.getCiudad()))
+            .sorted(orden)
+            .toList();
+
+    int total = filtrados.size();
+    int desde = Math.min(pagina * tamano, total);
+    int hasta = Math.min(desde + tamano, total);
+    int paginas = (int) Math.ceil((double) total / tamano);
+    return new Pagina&lt;&gt;(filtrados.subList(desde, hasta), pagina, tamano, total, paginas, pagina &gt;= paginas - 1);
+}</code></pre>`],
+["El controller",`<pre><code>@GetMapping
+public Pagina&lt;ClienteResponse&gt; listar(
+        @RequestParam(required = false) String nombre,
+        @RequestParam(required = false) String ciudad,
+        @RequestParam(defaultValue = "0") @Min(0) int page,
+        @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,      // tope para evitar abusos
+        @RequestParam(defaultValue = "id,asc") String sort) {
+
+    String[] partes = sort.split(",");
+    boolean asc = partes.length &lt; 2 || !partes[1].equalsIgnoreCase("desc");
+    return servicio.buscar(nombre, ciudad, page, size, partes[0], asc).map(mapper::toResponse);
+}</code></pre>
+<pre><code>{
+  "contenido": [ { "id": 3, "nombre": "Ana", ... }, { "id": 7, "nombre": "Andrés", ... } ],
+  "pagina": 0,
+  "tamano": 20,
+  "totalElementos": 2,
+  "totalPaginas": 1,
+  "ultima": true
+}</code></pre>
+<p>Si piden una página más allá del final, devuelve <code>contenido: []</code> con 200 (no es un error). El <code>IllegalArgumentException</code> del campo inválido debe traducirse a 400 en tu manejador global.</p>`],
+["Cómo lo hace Spring Data (Épica 10)",`<p>Con base de datos, el recorte lo hace SQL (<code>LIMIT/OFFSET</code>), no la memoria. Spring Data resuelve los parámetros por ti:</p>
+<pre><code>@GetMapping
+public Page&lt;ClienteResponse&gt; listar(@PageableDefault(size = 20, sort = "nombre") Pageable pageable) {
+    return servicio.listar(pageable).map(mapper::toResponse);
+}
+
+// Repositorio: JpaRepository ya incluye   Page&lt;Cliente&gt; findAll(Pageable pageable);
+// Petición:  /clientes?page=0&amp;size=20&amp;sort=nombre,asc
+
+PageRequest.of(0, 20, Sort.by("nombre").ascending())      // construir un Pageable a mano</code></pre>
+<p>Las versiones recientes de Spring Data avisan de que serializar un <code>PageImpl</code> tal cual no es estable; usa tu propio DTO de página (como <code>Pagina&lt;T&gt;</code>) o <code>PagedModel</code>. Spring Data también permite filtros dinámicos con <i>Specifications</i> o <i>Query by Example</i>.</p>`],
+["Criterios de diseño",`<ul><li><b>Límite máximo</b> de <code>size</code> siempre (por ejemplo 100).</li><li><b>Orden estable</b>: ordena además por una clave única (id); si no, los registros con el mismo valor pueden repetirse o saltarse entre páginas.</li><li><b>Lista blanca</b> de campos ordenables y filtrables: nunca uses el texto del cliente como nombre de columna.</li><li><b>Filtros</b> opcionales por query: <code>?ciudad=Lima&amp;activo=true</code>; rangos con <code>desde</code>/<code>hasta</code>; búsqueda libre con <code>q</code>.</li><li><b>Totales</b>: contar es costoso en tablas enormes; algunas APIs omiten el total o lo envían en headers (<code>X-Total-Count</code>).</li><li><b>Paginación por cursor (keyset)</b>: para listados enormes o scroll infinito es más eficiente que offset (<code>?despues_de_id=500</code>), porque no recorre las filas anteriores.</li></ul>`],
+["Práctica",`<ol><li>Carga 30 clientes de prueba (puedes hacerlo con un <code>@PostConstruct</code> o <code>CommandLineRunner</code>).</li><li>Implementa <code>Pagina&lt;T&gt;</code>, el método de búsqueda del servicio y el endpoint con los parámetros.</li><li>Prueba: primera página, última, página inexistente, <code>size=0</code> (debe dar 400), <code>size=1000</code> (400 o recortado), <code>sort=ciudad,desc</code>, <code>sort=password,asc</code> (400).</li><li>Combina filtros: <code>?ciudad=Lima&amp;nombre=an&amp;sort=nombre,asc&amp;size=5</code>.</li><li>Verifica que el orden es estable con valores repetidos (varios de la misma ciudad) agregando el id como criterio secundario.</li><li>Haz lo mismo para <code>Producto</code> con filtros por rango de precio (<code>precioMin</code>, <code>precioMax</code>).</li></ol>`],
+["Errores comunes",`<ul><li><b>Esperar páginas que empiezan en 1</b>: en Spring empiezan en 0.</li><li><b>subList con índices fuera de rango</b>: usa <code>Math.min</code>.</li><li><b>Dividir enteros</b> al calcular totalPaginas sin convertir a double.</li><li><b>Permitir cualquier size</b>: un cliente puede pedir un millón.</li><li><b>Ordenar por un campo arbitrario</b> sin lista blanca.</li><li><b>Paginar en memoria con base de datos</b> (traer todo y recortar): derrota el propósito.</li></ul>`],
+["Cómo sé que lo domino",`<ul><li>Diseño los parámetros page, size y sort de un endpoint de listado.</li><li>Implemento filtros, orden y página con totales.</li><li>Sé por qué hace falta un límite, una lista blanca y un orden estable.</li><li>Conozco cómo Spring Data hará lo mismo con Pageable.</li></ul>`]
+]},
+"8-5":{e:"9. API REST completa (CRUD)",t:"Documentación con Swagger/OpenAPI",s:[
+["Qué es OpenAPI y Swagger",`<p><b>OpenAPI</b> es el estándar para describir una API REST en JSON/YAML: endpoints, parámetros, cuerpos, respuestas y errores. <b>Swagger UI</b> es la página web interactiva que se genera a partir de esa descripción y te permite <b>leer y probar</b> la API desde el navegador. En Spring Boot se usa la librería <b>springdoc-openapi</b>, que lee tus controllers y DTOs y genera todo automáticamente, sin escribir la especificación a mano.</p>`],
+["Instalación",`<p>Agrega la dependencia (el artifactId es el mismo; <b>la versión depende de tu versión de Spring Boot</b>):</p>
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.springdoc&lt;/groupId&gt;
+    &lt;artifactId&gt;springdoc-openapi-starter-webmvc-ui&lt;/artifactId&gt;
+    &lt;version&gt;3.0.3&lt;/version&gt;      &lt;!-- Spring Boot 4.x: serie 3.0.x · Spring Boot 3.x: serie 2.8.x --&gt;
+&lt;/dependency&gt;</code></pre>
+<p>Usa la última versión de la serie que corresponda a tu Spring Boot (consulta Maven Central). No uses el antiguo <code>springdoc-openapi-ui</code> (es para Spring Boot 2). Arranca la aplicación y abre:</p>
+<pre><code>http://localhost:8080/swagger-ui.html     interfaz interactiva
+http://localhost:8080/v3/api-docs         especificación en JSON
+http://localhost:8080/v3/api-docs.yaml    especificación en YAML</code></pre>
+<p>Sin escribir una sola anotación ya verás todos tus endpoints, los DTOs con sus campos y las reglas de Bean Validation (campos obligatorios, longitudes, formato de email).</p>`],
+["Usar Swagger UI",`<ol><li>Expande un endpoint, por ejemplo <b>POST /api/v1/clientes</b>.</li><li>Pulsa <b>Try it out</b>: se rellena un cuerpo de ejemplo que puedes editar.</li><li><b>Execute</b>: ves la petición equivalente en <code>curl</code>, el código de estado, los headers y el cuerpo de la respuesta.</li><li>Revisa abajo la sección <b>Schemas</b> con los DTOs.</li></ol>
+<p>Si importas la URL <code>/v3/api-docs</code> en Postman (<b>Import → Link</b>) obtienes una colección completa con todos los endpoints.</p>`],
+["Enriquecer la documentación",`<pre><code>@Configuration
+public class OpenApiConfig {
+    @Bean
+    public OpenAPI apiInfo() {
+        return new OpenAPI().info(new Info()
+                .title("API Tienda")
+                .version("1.0.0")
+                .description("API REST de ejemplo para aprender Spring Boot")
+                .contact(new Contact().name("Tu Nombre").email("tu@correo.com")));
+    }
+}
+
+@Tag(name = "Clientes", description = "Gestión de clientes")
+@RestController
+@RequestMapping("/api/v1/clientes")
+public class ClienteController {
+
+    @Operation(summary = "Crear un cliente", description = "Registra un cliente nuevo y devuelve su ubicación")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Cliente creado"),
+        @ApiResponse(responseCode = "400", description = "Datos inválidos",
+                content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "409", description = "El email ya existe")
+    })
+    @PostMapping
+    public ResponseEntity&lt;ClienteResponse&gt; crear(@Valid @RequestBody ClienteRequest request) { ... }
+
+    @GetMapping("/{id}")
+    public ClienteResponse obtener(@Parameter(description = "Identificador del cliente", example = "5")
+                                   @PathVariable long id) { ... }
+}
+
+public record ClienteRequest(
+        @Schema(description = "Nombre completo", example = "Ana Ruiz")
+        @NotBlank String nombre,
+        @Schema(description = "Correo electrónico único", example = "ana@correo.com")
+        @Email String email
+) { }</code></pre>
+<p>Imports de <code>io.swagger.v3.oas.annotations.*</code> (Tag, Operation, Parameter, media.Schema, media.Content, responses.ApiResponse) y <code>io.swagger.v3.oas.models.*</code> (OpenAPI, info.Info, info.Contact). <code>@Schema(hidden = true)</code> oculta un campo o clase.</p>`],
+["Configuración y producción",`<pre><code>springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  packages-to-scan: com.miempresa.tienda.controller</code></pre>
+<p>La documentación interactiva no siempre debe estar abierta al mundo. En <code>application-prod.yml</code> (lección de perfiles) puedes apagarla:</p>
+<pre><code>springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false</code></pre>
+<p>Para agrupar por versión o módulo usa beans <code>GroupedOpenApi</code>. Cuando agregues seguridad (Épica 11), declararás un <code>SecurityScheme</code> (JWT Bearer) para que el botón <b>Authorize</b> de Swagger UI permita probar endpoints protegidos.</p>`],
+["Buenas prácticas",`<ul><li><b>Documenta para personas</b>: resumen corto y claro; ejemplos realistas; describe los errores posibles.</li><li>Los DTOs bien anotados con <code>@Schema</code> valen más que prosa extensa.</li><li>No dejes que las anotaciones ahoguen tu controller: si crece demasiado, mueve la documentación a una interfaz que el controller implemente.</li><li>La especificación es un <b>contrato</b>: compártela con el equipo de front-end y úsala para generar clientes (OpenAPI Generator) y para pruebas de contrato.</li><li>Revisa que la documentación refleja siempre la API real: al generarse del código, se mantiene sincronizada.</li></ul>`],
+["Práctica",`<ol><li>Agrega springdoc a tu proyecto (versión según tu Spring Boot) y abre Swagger UI.</li><li>Prueba desde Swagger UI todo el CRUD de clientes (crear, listar, obtener, actualizar, eliminar) y mira los curl generados.</li><li>Crea <code>OpenApiConfig</code> con título, versión y contacto.</li><li>Agrega <code>@Tag</code>, <code>@Operation</code> y <code>@ApiResponses</code> a los endpoints de clientes, incluyendo el esquema de error.</li><li>Anota los DTOs con <code>@Schema</code> (descripción y ejemplo) y observa cómo cambia el cuerpo de ejemplo.</li><li>Descarga <code>/v3/api-docs</code>, impórtalo en Postman y compara con tu colección manual.</li><li>Desactiva Swagger en el perfil <code>prod</code> y verifica que <code>/swagger-ui.html</code> ya no responde.</li></ol>`],
+["Errores comunes",`<ul><li><b>404 en /swagger-ui.html</b>: falta la dependencia, o la versión de springdoc no corresponde a tu Spring Boot (suele verse un <code>NoSuchMethodError</code> o <code>ClassNotFoundException</code> al arrancar).</li><li><b>Failed to load API definition</b>: hay un error generando la especificación; abre <code>/v3/api-docs</code> y mira el mensaje.</li><li><b>Usar springdoc-openapi-ui</b> (versión 1.x) en Spring Boot 3 o superior: debe ser el <code>starter-webmvc-ui</code>.</li><li><b>Swagger muestra la entidad en lugar del DTO</b>: el controller devuelve la entidad.</li><li><b>Endpoints bloqueados</b> por Spring Security: habrá que permitir las rutas de Swagger (Épica 11).</li><li><b>Dejar Swagger abierto en producción</b> sin querer.</li></ul>`],
+["Cómo sé que lo domino",`<ul><li>Explico la diferencia entre OpenAPI y Swagger UI.</li><li>Instalo springdoc con la versión correcta y accedo a la UI y a /v3/api-docs.</li><li>Documento endpoints, errores y DTOs con las anotaciones.</li><li>Sé desactivarlo en producción con un perfil.</li></ul>`]
 ]}
 };

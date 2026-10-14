@@ -20,8 +20,12 @@ h2{font-size:1.2rem;margin:28px 0 6px;padding-top:14px;border-top:1px solid var(
 p,ul,ol{margin:.6em 0}
 li{margin:.3em 0}
 code{font:.88em ui-monospace,Menlo,Consolas,monospace;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
-pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto;max-width:100%}
-pre code{border:0;padding:0;background:none;font-size:.85rem;line-height:1.5}
+:root{--code-bg:#ffffff;--c-text:#1f1f1f;--t-com:#008000;--t-str:#a31515;--t-ann:#267f99;--t-ctl:#af00db;--t-kw:#0000ff;--t-num:#098658;--t-typ:#267f99;--t-fn:#795e26;--t-var:#001080;--t-tg:#800000;--t-sx:#0000ff;--t-at:#e50000}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--code-bg:#1e1e1e;--c-text:#d4d4d4;--t-com:#6a9955;--t-str:#ce9178;--t-ann:#4ec9b0;--t-ctl:#c586c0;--t-kw:#569cd6;--t-num:#b5cea8;--t-typ:#4ec9b0;--t-fn:#dcdcaa;--t-var:#9cdcfe;--t-tg:#569cd6;--t-sx:#ce9178;--t-at:#9cdcfe}}
+:root[data-theme="dark"]{--code-bg:#1e1e1e;--c-text:#d4d4d4;--t-com:#6a9955;--t-str:#ce9178;--t-ann:#4ec9b0;--t-ctl:#c586c0;--t-kw:#569cd6;--t-num:#b5cea8;--t-typ:#4ec9b0;--t-fn:#dcdcaa;--t-var:#9cdcfe;--t-tg:#569cd6;--t-sx:#ce9178;--t-at:#9cdcfe}
+pre{background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto;max-width:100%;tab-size:4}
+pre code{border:0;padding:0;background:none;color:var(--c-text);font-size:.85rem;line-height:1.5}
+.t-com{color:var(--t-com)}.t-str{color:var(--t-str)}.t-ann{color:var(--t-ann)}.t-ctl{color:var(--t-ctl)}.t-kw{color:var(--t-kw)}.t-num{color:var(--t-num)}.t-typ{color:var(--t-typ)}.t-fn{color:var(--t-fn)}.t-var{color:var(--t-var)}.t-tg{color:var(--t-tg)}.t-sx{color:var(--t-sx)}.t-at{color:var(--t-at)}
 .done{margin-top:32px;display:flex;gap:10px;align-items:center;font:600 1rem system-ui,sans-serif;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;cursor:pointer}
 .done input{width:1.2em;height:1.2em;accent-color:var(--ok)}
 a:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
@@ -34,6 +38,83 @@ a:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:
 </main>
 <script src="lessons.js"></script>
 <script>
+/*HL-START*/
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+var LEX={
+java:[
+["com",/\/\/[^\n]*|\/\*[\s\S]*?\*\//],
+["str",/"""[\s\S]*?"""|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)'/],
+["ann",/@[A-Za-z_]\w*/],
+["ctl",/\b(?:if|else|for|while|do|switch|case|break|continue|return|try|catch|finally|throw|yield)\b/],
+["kw",/\b(?:public|private|protected|static|final|abstract|class|interface|enum|record|extends|implements|new|import|package|throws|void|int|long|double|float|boolean|char|byte|short|this|super|var|instanceof|synchronized|default|null|true|false|const|let|function)\b/],
+["num",/\b\d[\d_]*(?:\.\d+)?[LlFfDd]?\b/],
+["typ",/\b[A-Z][A-Za-z0-9_]*\b/],
+["fn",/\b[a-z_]\w*(?=\()/],
+["var",/\b[a-z_]\w*\b/]],
+sql:[
+["com",/--[^\n]*|\/\*[\s\S]*?\*\//],
+["str",/'(?:[^']|'')*'/],
+["kw",/\b(?:SELECT|FROM|WHERE|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|TABLE|INDEX|UNIQUE|DROP|ALTER|ADD|PRIMARY|KEY|FOREIGN|REFERENCES|ON|JOIN|INNER|LEFT|RIGHT|FULL|CROSS|OUTER|GROUP|BY|ORDER|HAVING|LIMIT|OFFSET|DISTINCT|AS|AND|OR|NOT|NULL|IS|IN|LIKE|BETWEEN|CASE|WHEN|THEN|ELSE|END|UNION|DEFAULT|CHECK|CONSTRAINT|BEGIN|COMMIT|ROLLBACK|GRANT|ALL|PRIVILEGES|TO|USER|WITH|PASSWORD|DATABASE|SCHEMA|EXPLAIN|ANALYZE|GENERATED|ALWAYS|IDENTITY|CASCADE|RESTRICT|ASC|DESC|EXISTS|TRUNCATE|USING|TRUE|FALSE)\b/],
+["typ",/\b(?:BIGINT|INTEGER|INT|SMALLINT|VARCHAR|TEXT|NUMERIC|DECIMAL|BOOLEAN|DATE|TIMESTAMP|UUID|SERIAL|CHAR)\b/],
+["num",/\b\d+(?:\.\d+)?\b/],
+["fn",/\b[A-Za-z_]\w*(?=\()/],
+["var",/\b[a-z_]\w*\b/]],
+xml:[
+["com",/<\!--[\s\S]*?-\->/],
+["tg",/<\/?[A-Za-z][\w:.-]*|\/?>/],
+["sx",/"[^"]*"/],
+["at",/[A-Za-z_:][\w:.-]*(?==)/]],
+yaml:[
+["com",/#[^\n]*/],
+["str",/"[^"\n]*"|'[^'\n]*'/],
+["fn",/\$\{[^}]*\}/],
+["var",/[\w.-]+(?=:(?:[ \t]|$))|^[\w.-]+(?==)/],
+["kw",/\b(?:true|false|null)\b/],
+["num",/\b\d+\b/]],
+bash:[
+["com",/(?:^|[ \t])#[^\n]*/],
+["str",/"(?:[^"\\\n]|\\.)*"|'[^'\n]*'/],
+["str",/https?:\/\/[^\s"']+/],
+["fn",/^[ \t]*[A-Za-z.\/][\w.\/-]*(?![\w.\/:-])/],
+["fn",/\b(?:winget|brew|sudo|apt)\b/],
+["var",/\$[A-Za-z_]\w*|\$\{[^}]*\}|\$\([^)]*\)|%[A-Z_]+%/],
+["typ",/(?:^|[ \t])--?[A-Za-z][\w-]*/]],
+http:[
+["kw",/^(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|HTTP\/[\d.]+)(?=\s)/],
+["var",/^[A-Za-z][\w-]*(?=:)/],
+["str",/"(?:[^"\\\n]|\\.)*"/],
+["num",/\b\d+\b/]],
+json:[
+["var",/"(?:[^"\\\n]|\\.)*"(?=\s*:)/],
+["str",/"(?:[^"\\\n]|\\.)*"/],
+["num",/-?\b\d+(?:\.\d+)?\b/],
+["kw",/\b(?:true|false|null)\b/]]
+};
+function detect(t){
+  var s=t.trim(),nb=s.replace(/\$\{[^}]*\}/g,"");
+  if(/^<[A-Za-z!?]/.test(s))return "xml";
+  if(/^[\[{]/.test(s)&&/"\s*:/.test(s)&&!/;/.test(s))return "json";
+  if(/^(?:(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\/|HTTP\/[\d.]+\s)/.test(s))return "http";
+  if(/^(?:--[^\n]*\n\s*)*(?:SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|BEGIN|EXPLAIN|WITH|GRANT)\b/.test(s))return "sql";
+  var code=/;\s*$|\{\s*$|^\s*\}/m.test(nb);
+  if(!code&&(/^\s*(?:\$ )?(?:git|mvn|\.\/mvnw|mvnw\.cmd|\.\/gradlew|java|javac|curl|docker|psql|cd|mkdir|ls|pwd|cat|echo|touch|cp|mv|rm|grep|clear|history|winget|brew|sudo|export|set|env|nano|sdk)\b/m.test(s)||/\b(?:winget|brew|sudo apt)\s+install\b/.test(s)))return "bash";
+  if(!code&&(/^[ \t]*(?:-[ \t]+)?[\w.-]+:(?:[ \t]|$)/m.test(nb)||/^[\w.-]+=[^=]/m.test(nb)))return "yaml";
+  if(code||/@[A-Z]\w+|\bimport\s+[\w.]+|\bpackage\s+[\w.]+|\b(?:class|interface|enum|record)\s+[A-Z]\w*|\bnew\s+[A-Z]|\bvoid\s+\w+\s*\(|\)\s*\{/.test(s))return "java";
+  return "plain";
+}
+function hl(code){
+  var t=code.textContent,rules=LEX[detect(t)];
+  if(!rules)return;
+  var re=new RegExp(rules.map(function(r){return "("+r[1].source+")"}).join("|"),"gm"),out="",last=0,m,i;
+  while((m=re.exec(t))){
+    if(m[0]===""){re.lastIndex++;continue}
+    i=1;while(m[i]===undefined)i++;
+    out+=esc(t.slice(last,m.index))+'<span class="t-'+rules[i-1][0]+'">'+esc(m[0])+'</span>';
+    last=m.index+m[0].length;
+  }
+  code.innerHTML=out+esc(t.slice(last));
+}
+/*HL-END*/
 var id=new URLSearchParams(location.search).get("t"),v=document.getElementById("view"),x=(window.L||{})[id];
 if(!x){
   v.innerHTML='<h1>Lección en preparación</h1><p>Esta lección todavía no está escrita. Vuelve al índice y abre otra.</p>';
@@ -43,6 +124,7 @@ if(!x){
   x.s.forEach(function(s){h+='<h2>'+s[0]+'</h2>'+s[1]});
   h+='<label class="done"><input type="checkbox" id="ck"> Marcar esta tarea como completada</label>';
   v.innerHTML=h;
+  document.querySelectorAll("pre code").forEach(function(c){hl(c)});
   var K="javaSpringRuta",S={};
   try{S=JSON.parse(localStorage.getItem(K)||"{}")}catch(e){S={}}
   var ck=document.getElementById("ck");ck.checked=!!S[id];
