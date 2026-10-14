@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lección · Ruta Java + Spring Boot</title>
+<style>
+:root{--bg:#eef2f6;--card:#fff;--ink:#14233a;--mute:#5b6b82;--line:#d3dbe6;--acc:#0b5fa5;--ok:#1d8a5b;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1623;--card:#16212f;--ink:#e6edf6;--mute:#93a3b8;--line:#2a3a50;--acc:#5aa9ec;--ok:#4cc38a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1623;--card:#16212f;--ink:#e6edf6;--mute:#93a3b8;--line:#2a3a50;--acc:#5aa9ec;--ok:#4cc38a;color-scheme:dark}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 Georgia,"Times New Roman",serif}
+main{max-width:720px;margin:0 auto;padding:20px 16px 56px}
+a{color:var(--acc)}
+.back{font:600 .9rem system-ui,sans-serif;text-decoration:none}
+.epic{color:var(--mute);font:600 .85rem system-ui,sans-serif;margin:18px 0 2px}
+h1{font-size:1.65rem;line-height:1.25;margin:0 0 12px}
+h2{font-size:1.2rem;margin:28px 0 6px;padding-top:14px;border-top:1px solid var(--line)}
+p,ul,ol{margin:.6em 0}
+li{margin:.3em 0}
+code{font:.88em ui-monospace,Menlo,Consolas,monospace;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto;max-width:100%}
+pre code{border:0;padding:0;background:none;font-size:.85rem;line-height:1.5}
+.done{margin-top:32px;display:flex;gap:10px;align-items:center;font:600 1rem system-ui,sans-serif;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;cursor:pointer}
+.done input{width:1.2em;height:1.2em;accent-color:var(--ok)}
+a:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+</style>
+</head>
+<body>
+<main>
+<a class="back" href="index.html">← Volver al índice</a>
+<div id="view"></div>
+</main>
+<script src="lessons.js"></script>
+<script>
+var id=new URLSearchParams(location.search).get("t"),v=document.getElementById("view"),x=(window.L||{})[id];
+if(!x){
+  v.innerHTML='<h1>Lección en preparación</h1><p>Esta lección todavía no está escrita. Vuelve al índice y abre otra.</p>';
+}else{
+  document.title=x.t+" · Ruta Java + Spring Boot";
+  var h='<div class="epic">Épica '+x.e+'</div><h1>'+x.t+'</h1>';
+  x.s.forEach(function(s){h+='<h2>'+s[0]+'</h2>'+s[1]});
+  h+='<label class="done"><input type="checkbox" id="ck"> Marcar esta tarea como completada</label>';
+  v.innerHTML=h;
+  var K="javaSpringRuta",S={};
+  try{S=JSON.parse(localStorage.getItem(K)||"{}")}catch(e){S={}}
+  var ck=document.getElementById("ck");ck.checked=!!S[id];
+  ck.onchange=function(){if(ck.checked)S[id]=1;else delete S[id];try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+}
+</script>
+</body>
+</html>

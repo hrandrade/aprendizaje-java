@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ruta Java + Spring Boot</title>
+<style>
+:root{--bg:#eef2f6;--card:#fff;--ink:#14233a;--mute:#5b6b82;--line:#d3dbe6;--acc:#0b5fa5;--ok:#1d8a5b;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1623;--card:#16212f;--ink:#e6edf6;--mute:#93a3b8;--line:#2a3a50;--acc:#5aa9ec;--ok:#4cc38a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1623;--card:#16212f;--ink:#e6edf6;--mute:#93a3b8;--line:#2a3a50;--acc:#5aa9ec;--ok:#4cc38a;color-scheme:dark}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Georgia,"Times New Roman",serif}
+main{max-width:720px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.7rem;line-height:1.2;margin:0 0 4px}
+.sub{color:var(--mute);margin:0 0 16px}
+.total{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding:10px 0;z-index:2}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--ok);transition:width .25s}
+.pct{font:600 .85rem system-ui,sans-serif;color:var(--mute);margin-top:4px}
+details{background:var(--card);border:1px solid var(--line);border-radius:8px;margin:10px 0}
+summary{cursor:pointer;padding:12px 14px;display:flex;gap:10px;align-items:center;list-style:none;font-weight:700}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"▸";color:var(--acc);transition:transform .15s}
+details[open] summary::before{transform:rotate(90deg)}
+summary:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.n{color:var(--acc);min-width:1.6em}
+.t{flex:1}
+.c{font:600 .8rem system-ui,sans-serif;color:var(--mute);white-space:nowrap}
+details.done .c{color:var(--ok)}
+ul{list-style:none;margin:0;padding:0 14px 12px 14px}
+li label{display:flex;gap:10px;align-items:flex-start;padding:6px 0;cursor:pointer}
+li input{margin-top:.4em;accent-color:var(--ok);width:1.05em;height:1.05em;flex:none}
+li input:checked+span{color:var(--mute);text-decoration:line-through}
+li a{color:inherit;text-decoration:underline;text-decoration-color:var(--acc);text-underline-offset:3px}
+li a:hover{color:var(--acc)}
+#q{width:100%;font:1rem system-ui,sans-serif;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+#res{background:var(--card);border:1px solid var(--line);border-radius:8px;margin-top:8px;padding:4px 14px}
+#res .h{font:600 .85rem system-ui,sans-serif;color:var(--mute);padding:8px 0}
+#res .r{padding:10px 0;border-top:1px solid var(--line)}
+#res .r a{font-weight:700;color:var(--acc)}
+#res .m{font:.8rem system-ui,sans-serif;color:var(--mute)}
+#res .s{font-size:.9rem;margin-top:2px}
+mark{background:#ffe08a;color:#14233a;border-radius:2px;padding:0 2px}
+.tools{display:flex;gap:8px;margin:8px 0}
+button{font:600 .85rem system-ui,sans-serif;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer}
+.ord{color:var(--mute);font-size:.92rem;margin-top:20px}
+</style>
+</head>
+<body>
+<main>
+<h1>Ruta Java + Spring Boot</h1>
+<p class="sub">De cero a avanzado. Marca cada tarea al terminarla.</p>
+<input id="q" type="search" placeholder="Buscar palabra (ej: JDK, Maven, switch)" aria-label="Buscar en las tareas" autocomplete="off">
+<div id="res" hidden></div>
+<div class="total"><div class="bar"><i id="tb"></i></div><div class="pct" id="tp"></div></div>
+<div class="tools"><button id="ex">Abrir todo</button><button id="co">Cerrar todo</button><button id="rs">Reiniciar progreso</button></div>
+<div id="app"></div>
+<p class="ord">Orden sugerido: 1 a 7 en orden estricto; luego 8 a 12; el resto según tus metas.</p>
+</main>
+<script src="lessons.js"></script>
+<script>
+var E=[
+["Preparar el entorno",["Instalar JDK 21 (LTS) y configurar JAVA_HOME","Instalar IntelliJ IDEA Community","Instalar Git y crear cuenta en GitHub","Aprender comandos básicos de terminal"]],
+["Fundamentos de programación",["Variables, tipos de datos y operadores","Condicionales (if, switch) y bucles","Métodos y parámetros","Arrays y String","Resolver 20+ ejercicios pequeños (calculadora, adivina el número…)"]],
+["Java orientado a objetos",["Clases, objetos y constructores","Encapsulación, herencia, polimorfismo y abstracción","Interfaces, clases abstractas, enum y record","Excepciones (try/catch y personalizadas)","Paquetes y modificadores de acceso"]],
+["Java intermedio",["Colecciones: List, Set, Map","Genéricos","Lambdas y Streams","Optional","Fechas (java.time) y manejo de archivos","Pruebas unitarias con JUnit 5"]],
+["Herramientas de desarrollo",["Maven (o Gradle): dependencias y ciclo de build","Git: commits, ramas y pull requests","Depurar con el debugger de IntelliJ","Logging (SLF4J/Logback)"]],
+["Bases de datos y SQL",["Modelo relacional, claves primarias y foráneas","SELECT, INSERT, UPDATE, DELETE y JOIN","Instalar PostgreSQL (o MySQL) y un cliente (DBeaver)","Normalización e índices","JDBC básico"]],
+["Web y HTTP",["Cómo funciona HTTP: métodos, códigos de estado, headers","Qué es una API REST y qué es JSON","Usar Postman o Insomnia"]],
+["Spring Boot básico",["Inversión de control e inyección de dependencias","Crear un proyecto con Spring Initializr","Estructura: controller, service, repository","Anotaciones clave (@RestController, @Service, @Autowired…)","Configuración con application.yml y perfiles (dev/prod)"]],
+["API REST completa (CRUD)",["Endpoints GET, POST, PUT y DELETE","DTOs y mapeo (MapStruct)","Validaciones (@Valid, Bean Validation)","Manejo global de errores (@ControllerAdvice)","Paginación, filtros y ordenamiento","Documentación con Swagger/OpenAPI"]],
+["Persistencia con Spring Data JPA",["Entidades y relaciones (1-1, 1-N, N-N)","Repositorios, consultas derivadas y @Query","Transacciones (@Transactional)","Problema N+1 y carga lazy/eager","Migraciones con Flyway"]],
+["Seguridad",["Spring Security: autenticación vs autorización","Contraseñas con BCrypt","JWT y roles/permisos","CORS, CSRF y OWASP Top 10 básico","OAuth2 / login social (opcional)"]],
+["Testing profesional",["Mockito y pruebas unitarias de servicios","@WebMvcTest y @SpringBootTest","Testcontainers (BD real en pruebas)","Cobertura con JaCoCo"]],
+["Arquitectura y buenas prácticas",["Principios SOLID y código limpio","Patrones de diseño comunes","Arquitectura en capas y hexagonal","Diseño de APIs y versionado","Revisión de código"]],
+["Spring Boot avanzado",["Caché (Redis) y tareas programadas","Mensajería asíncrona (Kafka o RabbitMQ)","Programación reactiva con WebFlux (opcional)","Actuator, métricas y observabilidad","Concurrencia: hilos, CompletableFuture y virtual threads"]],
+["Microservicios",["Cuándo sí y cuándo no usarlos","Comunicación entre servicios (REST, Feign, mensajería)","API Gateway y configuración centralizada","Resiliencia con Resilience4j (circuit breaker, retry)"]],
+["DevOps y despliegue",["Docker y Docker Compose","CI/CD con GitHub Actions","Desplegar en la nube (AWS, Render o Railway)","Variables de entorno y secretos"]],
+["Proyectos de portafolio",["Básico: gestor de tareas (CRUD)","Intermedio: tienda online con login y roles","Avanzado: sistema de microservicios con Docker","Subir todo a GitHub con un README claro"]],
+["Profesionalización",["Algoritmos y estructuras de datos (LeetCode básico)","Preparar CV y LinkedIn","Entrevistas técnicas","Contribuir a open source","Certificación opcional (Oracle Java o Spring Professional)"]]
+];
+var K="javaSpringRuta",S={};
+try{S=JSON.parse(localStorage.getItem(K)||"{}")}catch(e){S={}}
+function save(){try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}}
+var app=document.getElementById("app");
+E.forEach(function(e,i){
+  var d=document.createElement("details");
+  var h='<summary><span class="n">'+(i+1)+'</span><span class="t">'+e[0]+'</span><span class="c"></span></summary><ul>';
+  e[1].forEach(function(t,j){var id=i+"-"+j;h+='<li><label><input type="checkbox" data-id="'+id+'"'+(S[id]?' checked':'')+'><span><a href="lesson.html?t='+id+'">'+t+'</a></span></label></li>'});
+  d.innerHTML=h+'</ul>';app.appendChild(d);
+});
+function upd(){
+  var all=0,ok=0;
+  app.querySelectorAll("details").forEach(function(d){
+    var b=d.querySelectorAll("input"),c=d.querySelectorAll("input:checked").length;
+    all+=b.length;ok+=c;d.querySelector(".c").textContent=c+"/"+b.length;d.classList.toggle("done",c===b.length);
+  });
+  var p=all?Math.round(ok/all*100):0;
+  document.getElementById("tb").style.width=p+"%";
+  document.getElementById("tp").textContent=ok+" de "+all+" tareas ("+p+"%)";
+}
+app.addEventListener("change",function(ev){var t=ev.target;if(t.dataset.id){if(t.checked)S[t.dataset.id]=1;else delete S[t.dataset.id];save();upd()}});
+function all(o){app.querySelectorAll("details").forEach(function(d){d.open=o})}
+document.getElementById("ex").onclick=function(){all(true)};
+document.getElementById("co").onclick=function(){all(false)};
+document.getElementById("rs").onclick=function(){if(confirm("¿Borrar todo el progreso?")){S={};save();app.querySelectorAll("input").forEach(function(i){i.checked=false});upd()}};
+upd();
+function norm(s){return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function strip(h){var d=document.createElement("div");d.innerHTML=h;return d.textContent}
+var IDX=[];
+E.forEach(function(e,i){e[1].forEach(function(t,j){
+  var id=i+"-"+j,l=(window.L||{})[id],txt=t;
+  if(l)l.s.forEach(function(s){txt+=" | "+s[0]+" | "+strip(s[1]).replace(/\s+/g," ")});
+  IDX.push({id:id,ep:(i+1)+". "+e[0],t:t,txt:txt,n:norm(txt),has:!!l});
+})});
+var q=document.getElementById("q"),res=document.getElementById("res");
+q.addEventListener("input",function(){
+  var s=norm(q.value.trim()),out=[];
+  if(s.length<2){res.hidden=true;res.innerHTML="";return}
+  IDX.forEach(function(x){
+    var c=0,f=-1,k=x.n.indexOf(s);
+    while(k>-1){c++;if(f<0)f=k;k=x.n.indexOf(s,k+s.length)}
+    if(c)out.push({x:x,c:c,f:f});
+  });
+  out.sort(function(a,b){return b.c-a.c});
+  var h='<div class="h">'+(out.length?out.length+" tarea(s) con «"+esc(q.value.trim())+"»":"Sin resultados para «"+esc(q.value.trim())+"»")+'</div>';
+  out.forEach(function(o){
+    var t=o.x.txt,a=Math.max(0,o.f-45),b=Math.min(t.length,o.f+s.length+70);
+    var sn=(a>0?"…":"")+esc(t.slice(a,o.f))+"<mark>"+esc(t.slice(o.f,o.f+s.length))+"</mark>"+esc(t.slice(o.f+s.length,b))+(b<t.length?"…":"");
+    h+='<div class="r"><a href="lesson.html?t='+o.x.id+'">'+esc(o.x.t)+'</a><div class="m">Épica '+esc(o.x.ep)+' · '+o.c+' coincidencia(s)'+(o.x.has?'':' · solo en el título (lección pendiente)')+'</div><div class="s">'+sn+'</div></div>';
+  });
+  res.innerHTML=h;res.hidden=false;
+});
+</script>
+</body>
+</html>
